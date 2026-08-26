@@ -15,12 +15,14 @@ const { initCronSweeper } = require('./services/cronSweeper');
 const app = express();
 const server = http.createServer(app);
 
-// CORS Configuration
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+// CORS Configuration - Defensive handling of FRONTEND_URL trailing slashes
+const rawFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+const sanitizedFrontendUrl = rawFrontendUrl.replace(/\/+$/, '');
+const allowedOrigins = [...new Set([sanitizedFrontendUrl, 'http://localhost:5173'])];
 
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -28,7 +30,7 @@ app.use(
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: FRONTEND_URL,
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true,
   },
