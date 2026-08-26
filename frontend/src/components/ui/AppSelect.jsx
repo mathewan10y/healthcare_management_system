@@ -1,18 +1,9 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { isValidElement, useState, useRef, useEffect, useMemo } from 'react';
 import { FiChevronDown, FiSearch, FiCheck, FiLoader } from 'react-icons/fi';
 import { cn } from '../../utils/cn';
 
 /**
  * AppSelect - A modern, accessible dropdown component for healthcare SaaS
- * 
- * Features:
- * - Consistent styling across all dropdowns
- * - Keyboard navigation support
- * - Search functionality for long lists
- * - Grouped options support
- * - Loading states
- * - Full accessibility compliance
- * - Responsive design
  */
 const AppSelect = ({
   options = [],
@@ -27,7 +18,7 @@ const AppSelect = ({
   label = '',
   error = '',
   required = false,
-  icon: Icon = null,
+  icon = null,
   size = 'md', // 'sm', 'md', 'lg'
   variant = 'default', // 'default', 'outline', 'ghost'
   grouped = false,
@@ -130,7 +121,7 @@ const AppSelect = ({
 
   // Get display value
   const getDisplayValue = () => {
-    if (!internalValue) return placeholder;
+    if (!internalValue && internalValue !== 0) return placeholder;
     
     const option = options.find(opt => {
       const val = typeof opt === 'string' ? opt : opt[optionKey];
@@ -145,7 +136,14 @@ const AppSelect = ({
   const handleSelect = (option) => {
     const val = typeof option === 'string' ? option : option[optionKey];
     setInternalValue(val);
-    onChange(val, option);
+    if (typeof onChange === 'function') {
+      const syntheticEvent = {
+        target: { value: val, name: props.name || '' },
+        currentTarget: { value: val, name: props.name || '' },
+      };
+      // Allow handlers expecting (val) or (e)
+      onChange(val, option, syntheticEvent);
+    }
     setIsOpen(false);
     setSearchTerm('');
     setFocusedIndex(-1);
@@ -214,16 +212,16 @@ const AppSelect = ({
 
   // Variant classes
   const variantClasses = {
-    default: 'bg-white dark:bg-dark-surface border border-gray-300 dark:border-dark-border hover:border-gray-400 dark:hover:border-dark-surface-hover focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
-    outline: 'bg-transparent border-2 border-gray-300 dark:border-dark-border hover:border-gray-400 dark:hover:border-dark-surface-hover focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
-    ghost: 'bg-gray-50 dark:bg-dark-surface border border-transparent dark:border-dark-border hover:bg-gray-100 dark:hover:bg-dark-surface-hover focus:bg-white dark:focus:bg-dark-surface focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+    default: 'bg-bg-input text-text-primary border border-border-subtle hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20',
+    outline: 'bg-transparent text-text-primary border-2 border-border-subtle hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20',
+    ghost: 'bg-bg-muted text-text-primary border border-transparent hover:bg-bg-card-hover focus:bg-bg-input focus:border-primary focus:ring-2 focus:ring-primary/20'
   };
 
   return (
     <div className={cn('relative', className)} ref={selectRef}>
       {/* Label */}
       {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-text-secondary-dark mb-1">
+        <label className="block text-sm font-medium text-text-secondary mb-1">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -236,14 +234,14 @@ const AppSelect = ({
         onKeyDown={handleKeyDown}
         disabled={disabled || loading}
         className={cn(
-          'w-full flex items-center justify-between rounded-lg transition-all duration-150 ease-in-out',
-          'focus:outline-none focus:ring-2 focus:ring-blue-500/20',
+          'w-full flex items-center justify-between rounded-xl transition-all duration-150 ease-in-out',
+          'focus:outline-none focus:ring-2 focus:ring-primary/20',
           sizeClasses[size],
           variantClasses[variant],
-          disabled && 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-dark-surface',
+          disabled && 'opacity-50 cursor-not-allowed bg-bg-muted text-text-muted',
           loading && 'opacity-75 cursor-wait',
           error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
-          isOpen && 'ring-2 ring-blue-500/20 border-blue-500'
+          isOpen && 'ring-2 ring-primary/20 border-primary'
         )}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -251,11 +249,18 @@ const AppSelect = ({
         {...props}
       >
         <div className="flex items-center flex-1 min-w-0">
-          {Icon && <Icon className="w-4 h-4 mr-2 text-gray-500 dark:text-text-secondary-dark flex-shrink-0" />}
+          {isValidElement(icon) ? (
+            <span className="mr-2 text-text-muted flex-shrink-0 flex items-center">{icon}</span>
+          ) : icon ? (
+            (() => {
+              const IconComp = icon;
+              return <IconComp className="w-4 h-4 mr-2 text-text-muted flex-shrink-0" />;
+            })()
+          ) : null}
           <span className={cn(
             'truncate',
-            !internalValue && 'text-gray-500 dark:text-text-secondary-dark',
-            internalValue && 'text-gray-900 dark:text-text-primary-dark font-medium'
+            !internalValue && internalValue !== 0 && 'text-text-muted',
+            (internalValue || internalValue === 0) && 'text-text-primary font-medium'
           )}>
             {getDisplayValue()}
           </span>
@@ -263,11 +268,11 @@ const AppSelect = ({
         
         <div className="flex items-center ml-2">
           {loading ? (
-            <FiLoader className="w-4 h-4 text-gray-400 dark:text-text-secondary-dark animate-spin" />
+            <FiLoader className="w-4 h-4 text-text-muted animate-spin" />
           ) : (
             <FiChevronDown className={cn(
-              'w-4 h-4 text-gray-400 dark:text-text-secondary-dark transition-transform duration-150',
-              isOpen && 'rotate-180'
+              'w-4 h-4 text-text-muted transition-transform duration-150',
+              isOpen && 'transform rotate-180'
             )} />
           )}
         </div>
@@ -275,115 +280,113 @@ const AppSelect = ({
 
       {/* Error Message */}
       {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p className="text-xs text-red-500 mt-1">{error}</p>
       )}
 
-      {/* Dropdown List */}
+      {/* Dropdown Menu */}
       {isOpen && (
-        <div
+        <div 
           className={cn(
-            'absolute z-[999] w-full bg-white rounded-md shadow-lg border border-gray-200',
-            'sm:max-w-none max-w-[calc(100vw-2rem)]', // Responsive width
-            openUp ? 'mb-2' : 'mt-2'
+            'absolute z-50 w-full bg-bg-card rounded-2xl shadow-xl border border-border-subtle py-1.5 backdrop-blur-md',
+            'animate-in fade-in-0 zoom-in-95 duration-100'
           )}
-          style={openUp ? { bottom: '100%' } : { top: '100%' }}
+          style={{
+            bottom: openUp ? 'calc(100% + 8px)' : undefined,
+            top: !openUp ? 'calc(100% + 8px)' : undefined,
+            maxHeight: `${dropdownMax}px`,
+            overflowY: 'auto'
+          }}
+          role="listbox"
+          aria-multiselectable="false"
         >
           {/* Search Input */}
           {searchable && (
-            <div className="p-2 border-b border-gray-200">
+            <div className="p-2 border-b border-border-subtle sticky top-0 bg-bg-card">
               <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted w-4 h-4" />
                 <input
                   ref={searchRef}
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full bg-bg-input text-text-primary pl-9 pr-3 py-1.5 text-sm rounded-lg border border-border-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 />
               </div>
             </div>
           )}
 
           {/* Options List */}
-          <div className="py-2 overflow-y-auto" style={{ maxHeight: dropdownMax }}>
-            {loading ? (
-              <div className="flex items-center justify-center py-4">
-                <FiLoader className="w-4 h-4 text-gray-400 animate-spin mr-2" />
-                <span className="text-sm text-gray-500">Loading...</span>
-              </div>
-            ) : grouped ? (
+          <div className="py-1">
+            {grouped ? (
               // Grouped Options
-              groupedOptions.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-gray-500">No options found</div>
-              ) : (
-                groupedOptions.map((group, groupIndex) => (
-                  <div key={group.group}>
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">
-                      {group.group}
-                    </div>
-                    {group.options.map((option, optionIndex) => {
-                      const index = groupIndex;
-                      const val = option[optionKey];
-                      const label = option[optionLabel];
-                      const isSelected = val === internalValue;
-                      const isFocused = index === focusedIndex;
-                      
-                      return (
-                        <button
-                          key={val}
-                          ref={el => optionRefs.current[index] = el}
-                          type="button"
-                          onClick={() => handleSelect(option)}
-                          className={cn(
-                            'w-full text-left px-3 py-2 text-sm transition-colors duration-150',
-                            'hover:bg-blue-50 hover:text-blue-600',
-                            isSelected && 'bg-blue-50 text-blue-600 font-medium',
-                            isFocused && 'bg-blue-50 text-blue-600'
-                          )}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span>{label}</span>
-                            {isSelected && <FiCheck className="w-4 h-4" />}
-                          </div>
-                        </button>
-                      );
-                    })}
+              groupedOptions.map((group, groupIndex) => (
+                <div key={groupIndex}>
+                  <div className="px-3 py-1 text-xs font-bold text-text-muted uppercase tracking-wider">
+                    {group.group}
                   </div>
-                ))
-              )
+                  {group.options.map((option, optionIndex) => {
+                    const val = typeof option === 'string' ? option : option[optionKey];
+                    const label = typeof option === 'string' ? option : option[optionLabel];
+                    const isSelected = val === internalValue;
+                    const index = groupIndex * 100 + optionIndex;
+
+                    return (
+                      <div
+                        key={val}
+                        ref={el => optionRefs.current[index] = el}
+                        onClick={() => handleSelect(option)}
+                        onMouseEnter={() => setFocusedIndex(index)}
+                        className={cn(
+                          'flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition-colors duration-150',
+                          isSelected && 'bg-primary/10 text-primary font-bold',
+                          !isSelected && focusedIndex === index && 'bg-bg-muted text-text-primary',
+                          !isSelected && focusedIndex !== index && 'text-text-primary hover:bg-bg-muted'
+                        )}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        <span className="truncate">{label}</span>
+                        {isSelected && <FiCheck className="w-4 h-4 text-primary ml-2 flex-shrink-0" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))
             ) : (
               // Regular Options
-              filteredOptions.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-gray-500">No options found</div>
-              ) : (
-                filteredOptions.map((option, index) => {
-                  const val = typeof option === 'string' ? option : option[optionKey];
-                  const label = typeof option === 'string' ? option : option[optionLabel];
-                  const isSelected = val === internalValue;
-                  const isFocused = index === focusedIndex;
-                  
-                  return (
-                    <button
-                      key={val}
-                      ref={el => optionRefs.current[index] = el}
-                      type="button"
-                      onClick={() => handleSelect(option)}
-                      className={cn(
-                        'w-full text-left px-3 py-2 text-sm transition-colors duration-150',
-                        'hover:bg-blue-50 hover:text-blue-600',
-                        isSelected && 'bg-blue-50 text-blue-600 font-medium',
-                        isFocused && 'bg-blue-50 text-blue-600'
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{label}</span>
-                        {isSelected && <FiCheck className="w-4 h-4" />}
-                      </div>
-                    </button>
-                  );
-                })
-              )
+              filteredOptions.map((option, index) => {
+                const val = typeof option === 'string' ? option : option[optionKey];
+                const label = typeof option === 'string' ? option : option[optionLabel];
+                const isSelected = val === internalValue;
+
+                return (
+                  <div
+                    key={val || index}
+                    ref={el => optionRefs.current[index] = el}
+                    onClick={() => handleSelect(option)}
+                    onMouseEnter={() => setFocusedIndex(index)}
+                    className={cn(
+                      'flex items-center justify-between px-3.5 py-2 text-sm cursor-pointer transition-colors duration-150',
+                      isSelected && 'bg-primary/10 text-primary font-bold',
+                      !isSelected && focusedIndex === index && 'bg-bg-muted text-text-primary',
+                      !isSelected && focusedIndex !== index && 'text-text-primary hover:bg-bg-muted'
+                    )}
+                    role="option"
+                    aria-selected={isSelected}
+                  >
+                    <span className="truncate">{label}</span>
+                    {isSelected && <FiCheck className="w-4 h-4 text-primary ml-2 flex-shrink-0" />}
+                  </div>
+                );
+              })
+            )}
+
+            {/* Empty State */}
+            {((grouped && groupedOptions.length === 0) || (!grouped && filteredOptions.length === 0)) && (
+              <div className="px-3 py-4 text-sm text-text-muted text-center">
+                {searchTerm ? 'No options match your search' : 'No options available'}
+              </div>
             )}
           </div>
         </div>

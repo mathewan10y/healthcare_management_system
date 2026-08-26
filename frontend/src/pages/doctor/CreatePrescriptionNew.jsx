@@ -287,7 +287,7 @@ export default function CreatePrescriptionNew() {
           </div>
 
           {/* Diagnosis & Notes */}
-          <div className="bg-white p-6 rounded-xl shadow-card space-y-4">
+          <div className="bg-bg-card p-6 rounded-2xl shadow-card border border-border-subtle space-y-4">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-2">
                 Diagnosis

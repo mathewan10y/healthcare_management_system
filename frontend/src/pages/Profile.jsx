@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { FiUser, FiMail, FiMapPin, FiCamera, FiEdit2, FiSave, FiX, FiLock, FiCalendar, FiTrash2, FiUpload, FiHome } from 'react-icons/fi';
+import { FiUser, FiMail, FiMapPin, FiCamera, FiEdit2, FiSave, FiX, FiLock, FiCalendar, FiTrash2, FiHome } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
@@ -191,17 +191,16 @@ export default function Profile() {
     }
   };
 
-
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-text-primary-dark mb-2">My Profile</h1>
-          <p className="text-gray-600 dark:text-text-secondary-dark">Manage your personal information and settings</p>
+          <h1 className="text-3xl font-bold text-text-primary mb-2">My Profile</h1>
+          <p className="text-text-secondary">Manage your personal information and settings</p>
         </div>
         <ProfileSkeleton />
-        <div className="bg-white dark:bg-bg-card-dark rounded-xl shadow-sm dark:shadow-card-dark border border-gray-100 dark:border-dark-border p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Information</h2>
+        <div className="bg-bg-card rounded-2xl shadow-card border border-border-subtle p-6">
+          <h2 className="text-xl font-semibold text-text-primary mb-4">Profile Information</h2>
           <FormSkeleton fields={4} />
         </div>
       </div>
@@ -211,9 +210,9 @@ export default function Profile() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary-light text-white rounded-2xl p-8">
+      <div className="bg-gradient-to-r from-primary to-primary-hover text-white rounded-2xl p-8 shadow-md">
         <div className="flex items-center gap-6">
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <Avatar
               src={profile?.photoUrl}
               name={profile?.name}
@@ -226,8 +225,9 @@ export default function Profile() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="bg-white dark:bg-dark-surface text-primary p-2 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-dark-surface-hover transition-colors disabled:opacity-50"
+                className="bg-white text-primary p-2 rounded-full shadow-lg hover:bg-slate-100 transition-colors disabled:opacity-50"
                 title="Change picture"
+                aria-label="Change picture"
               >
                 {uploading ? (
                   <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -241,6 +241,7 @@ export default function Profile() {
                   onClick={handleRemovePicture}
                   className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors"
                   title="Remove picture"
+                  aria-label="Remove picture"
                 >
                   <FiTrash2 className="w-4 h-4" />
                 </button>
@@ -256,10 +257,10 @@ export default function Profile() {
             />
           </div>
           
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2 text-white">{profile?.name}</h1>
-            <p className="text-white/80 text-lg capitalize">{profile?.role}</p>
-            <p className="text-white/60 text-sm">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-bold mb-1 text-white truncate">{profile?.name}</h1>
+            <p className="text-white/80 text-base capitalize">{profile?.role}</p>
+            <p className="text-white/60 text-xs mt-1">
               Member since {new Date(profile?.createdAt).toLocaleDateString('en-US', { 
                 month: 'long', 
                 year: 'numeric' 
@@ -270,10 +271,10 @@ export default function Profile() {
       </div>
 
       {/* Profile Information */}
-      <div className="bg-white dark:bg-bg-card-dark rounded-2xl shadow-xl dark:shadow-card-dark border border-slate-200/60 dark:border-dark-border overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+      <div className="bg-bg-card rounded-2xl shadow-card border border-border-subtle overflow-hidden">
+        <div className="p-6 border-b border-border-subtle bg-bg-muted">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-text-primary-dark">Profile Information</h2>
+            <h2 className="text-xl font-bold text-text-primary">Profile Information</h2>
             <button
               onClick={() => {
                 if (editing) {
@@ -285,7 +286,7 @@ export default function Profile() {
                 }
                 setEditing(!editing);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary-hover transition-colors text-sm font-semibold shadow-sm"
             >
               {editing ? <FiX className="w-4 h-4" /> : <FiEdit2 className="w-4 h-4" />}
               {editing ? 'Cancel' : 'Edit'}
@@ -293,11 +294,11 @@ export default function Profile() {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5">
           {/* Name Field */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <FiUser className="w-4 h-4" />
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
+              <FiUser className="w-4 h-4 text-primary" />
               Full Name
             </label>
             {editing ? (
@@ -306,36 +307,38 @@ export default function Profile() {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                className="w-full px-4 py-3 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
                 placeholder="Enter your full name"
               />
             ) : (
-              <p className="px-4 py-3 bg-gray-50 rounded-lg text-gray-900">{profile?.name || 'Not provided'}</p>
+              <div className="px-4 py-3 bg-bg-muted rounded-xl text-text-primary font-medium text-sm border border-border-subtle">
+                {profile?.name || 'Not provided'}
+              </div>
             )}
           </div>
 
           {/* Email Field - Always Disabled */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <FiMail className="w-4 h-4" />
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
+              <FiMail className="w-4 h-4 text-primary" />
               Email Address
-              <span className="text-xs text-gray-500">(Cannot be changed)</span>
+              <span className="text-xs font-normal text-text-muted">(Cannot be changed)</span>
             </label>
             <div className="relative">
               <input
                 type="email"
                 value={profile?.email || 'Not provided'}
                 disabled
-                className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-lg text-gray-600 cursor-not-allowed"
+                className="w-full px-4 py-3 bg-bg-muted border border-border-subtle rounded-xl text-text-muted cursor-not-allowed text-sm"
               />
-              <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <FiLock className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
             </div>
           </div>
 
           {/* District Field */}
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <FiMapPin className="w-4 h-4" />
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-2 text-sm font-semibold text-text-secondary">
+              <FiMapPin className="w-4 h-4 text-primary" />
               District
             </label>
             {editing ? (
@@ -351,16 +354,18 @@ export default function Profile() {
                 searchPlaceholder="Search districts..."
               />
             ) : (
-              <p className="px-4 py-3 bg-gray-50 rounded-lg text-gray-900">{profile?.district || 'Not provided'}</p>
+              <div className="px-4 py-3 bg-bg-muted rounded-xl text-text-primary font-medium text-sm border border-border-subtle">
+                {profile?.district || 'Not provided'}
+              </div>
             )}
           </div>
 
           {/* Save Button */}
           {editing && (
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-3">
               <button
                 onClick={handleSaveProfile}
-                className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors font-medium"
+                className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary-hover transition-colors font-semibold text-sm shadow-md"
               >
                 <FiSave className="w-4 h-4" />
                 Save Changes
@@ -372,62 +377,62 @@ export default function Profile() {
 
       {/* Hospital Information - For Doctors Only */}
       {profile?.role === 'doctor' && profile?.doctorProfile?.hospitalId && (
-        <div className="bg-white dark:bg-bg-card-dark rounded-2xl shadow-xl dark:shadow-card-dark border border-slate-200/60 dark:border-dark-border overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
+        <div className="bg-bg-card rounded-2xl shadow-card border border-border-subtle overflow-hidden">
+          <div className="p-6 border-b border-border-subtle bg-bg-muted">
             <div className="flex items-center gap-3">
-              <FiHome className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-text-primary-dark">Hospital Information</h2>
+              <FiHome className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-bold text-text-primary">Hospital Information</h2>
             </div>
           </div>
 
-          <div className="p-6 bg-gradient-to-br from-blue-50 to-white">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FiHome className="w-5 h-5 text-primary" />
+          <div className="p-6">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-bg-muted border border-border-subtle flex items-start gap-3">
+                <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 text-primary">
+                  <FiHome className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Hospital Name</p>
-                  <p className="text-lg font-semibold text-gray-900">{profile.doctorProfile.hospitalId.name}</p>
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Hospital Name</p>
+                  <p className="text-base font-bold text-text-primary">{profile.doctorProfile.hospitalId.name}</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FiMapPin className="w-5 h-5 text-primary" />
+              <div className="p-4 rounded-xl bg-bg-muted border border-border-subtle flex items-start gap-3">
+                <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 text-primary">
+                  <FiMapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Location</p>
-                  <p className="text-gray-900">{profile.doctorProfile.hospitalId.district}, {profile.doctorProfile.hospitalId.city || 'Kerala'}</p>
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Location</p>
+                  <p className="text-sm font-semibold text-text-primary">{profile.doctorProfile.hospitalId.district}, {profile.doctorProfile.hospitalId.city || 'Kerala'}</p>
                   {profile.doctorProfile.hospitalId.address && (
-                    <p className="text-sm text-gray-600 mt-1">{profile.doctorProfile.hospitalId.address}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">{profile.doctorProfile.hospitalId.address}</p>
                   )}
                 </div>
               </div>
 
               {profile.doctorProfile.hospitalId.phone && (
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FiUser className="w-5 h-5 text-primary" />
+                <div className="p-4 rounded-xl bg-bg-muted border border-border-subtle flex items-start gap-3">
+                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 text-primary">
+                    <FiUser className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Contact</p>
-                    <p className="text-gray-900">{profile.doctorProfile.hospitalId.phone}</p>
+                    <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Contact</p>
+                    <p className="text-sm font-semibold text-text-primary">{profile.doctorProfile.hospitalId.phone}</p>
                     {profile.doctorProfile.hospitalId.email && (
-                      <p className="text-sm text-gray-600">{profile.doctorProfile.hospitalId.email}</p>
+                      <p className="text-xs text-text-secondary mt-0.5">{profile.doctorProfile.hospitalId.email}</p>
                     )}
                   </div>
                 </div>
               )}
 
               {profile.doctorProfile.specializationId && (
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FiCalendar className="w-5 h-5 text-primary" />
+                <div className="p-4 rounded-xl bg-bg-muted border border-border-subtle flex items-start gap-3">
+                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0 text-primary">
+                    <FiCalendar className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Specialization</p>
-                    <p className="text-gray-900 font-medium">{profile.doctorProfile.specializationId.name}</p>
+                    <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Specialization</p>
+                    <p className="text-sm font-semibold text-text-primary">{profile.doctorProfile.specializationId.name}</p>
                   </div>
                 </div>
               )}
@@ -437,23 +442,25 @@ export default function Profile() {
       )}
 
       {/* Security Section */}
-      <div className="bg-white dark:bg-bg-card-dark rounded-2xl shadow-xl dark:shadow-card-dark border border-slate-200/60 dark:border-dark-border overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-text-primary-dark">Security</h2>
+      <div className="bg-bg-card rounded-2xl shadow-card border border-border-subtle overflow-hidden">
+        <div className="p-6 border-b border-border-subtle bg-bg-muted">
+          <h2 className="text-xl font-bold text-text-primary">Security</h2>
         </div>
 
         <div className="p-6">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-bg-muted border border-border-subtle rounded-xl">
             <div className="flex items-center gap-3">
-              <FiLock className="w-5 h-5 text-gray-600" />
+              <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                <FiLock className="w-5 h-5" />
+              </div>
               <div>
-                <h3 className="font-medium text-gray-900">Password</h3>
-                <p className="text-sm text-gray-600">Last updated: {new Date(profile?.updatedAt).toLocaleDateString()}</p>
+                <h3 className="font-semibold text-text-primary text-sm">Account Password</h3>
+                <p className="text-xs text-text-muted mt-0.5">Last updated: {new Date(profile?.updatedAt || Date.now()).toLocaleDateString()}</p>
               </div>
             </div>
             <button
               onClick={() => setShowPasswordModal(true)}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors"
+              className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary-hover transition-colors font-semibold text-sm shadow-sm"
             >
               Change Password
             </button>
@@ -463,21 +470,22 @@ export default function Profile() {
 
       {/* Password Change Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-bg-card-dark rounded-xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-text-primary-dark">Change Password</h3>
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-bg-card text-text-primary rounded-2xl shadow-2xl border border-border-subtle w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-6 pb-3 border-b border-border-subtle">
+              <h3 className="text-xl font-bold text-text-primary">Change Password</h3>
               <button
                 onClick={() => setShowPasswordModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-card-hover"
+                aria-label="Close dialog"
               >
-                <FiX className="w-6 h-6" />
+                <FiX className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                   Current Password
                 </label>
                 <input
@@ -485,13 +493,13 @@ export default function Profile() {
                   name="currentPassword"
                   value={passwordData.currentPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                  className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
                   placeholder="Enter current password"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                   New Password
                 </label>
                 <input
@@ -499,13 +507,13 @@ export default function Profile() {
                   name="newPassword"
                   value={passwordData.newPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                  className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
                   placeholder="Enter new password"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                   Confirm New Password
                 </label>
                 <input
@@ -513,22 +521,22 @@ export default function Profile() {
                   name="confirmPassword"
                   value={passwordData.confirmPassword}
                   onChange={handlePasswordChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                  className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors text-sm"
                   placeholder="Confirm new password"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-3 mt-6 pt-3 border-t border-border-subtle">
               <button
                 onClick={() => setShowPasswordModal(false)}
-                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2.5 border border-border-subtle text-text-secondary rounded-xl hover:bg-bg-card-hover transition-colors font-medium text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleChangePassword}
-                className="flex-1 px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors"
+                className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-hover transition-colors font-semibold text-sm shadow-sm"
               >
                 Change Password
               </button>

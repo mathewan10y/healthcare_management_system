@@ -1,300 +1,176 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { FiCalendar, FiClock, FiMapPin, FiSearch, FiX, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import { useAuth } from '../../contexts/AuthContext';
-import { FiSearch, FiCalendar, FiClock, FiX, FiMapPin } from 'react-icons/fi';
-import { AppSelect, Calendar } from '../../components/ui';
-import DoctorProfileModal from '../../components/ui/DoctorProfileModal';
 import { KERALA_DISTRICTS } from '../../constants';
+import { AppSelect, Calendar, DoctorProfileModal } from '../../components/ui';
 
 export default function BookAppointment() {
-  const { user } = useAuth();
-  const [specializations, setSpecializations] = useState([]);
+  const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
-  const [filterDistrict, setFilterDistrict] = useState(user?.district || '');
+  const [specializations, setSpecializations] = useState([]);
   const [selectedSpecId, setSelectedSpecId] = useState(null);
+  const [filterDistrict, setFilterDistrict] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [profileDoctor, setProfileDoctor] = useState(null);
-  const [form, setForm] = useState({ date: '', timeSlot: '' });
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchTimeout, setSearchTimeout] = useState(null);
-  
-  // Smart availability state
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [availableDates, setAvailableDates] = useState([]);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loadingDates, setLoadingDates] = useState(false);
-  // Track current time (updates every 30s) for live filtering of today's slots
-  const [nowMs, setNowMs] = useState(Date.now());
+  const [form, setForm] = useState({ date: '', timeSlot: '' });
 
+  // Today's date in YYYY-MM-DD
   const todayIsoDate = useMemo(() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`; // Local YYYY-MM-DD
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }, []);
 
-  // Keep `nowMs` updated so that filtering reflects the passing of time
   useEffect(() => {
-    const id = setInterval(() => setNowMs(Date.now()), 30_000);
-    return () => clearInterval(id);
+    (async () => {
+      try {
+        const [specRes] = await Promise.all([
+          api.get('/specializations'),
+        ]);
+        setSpecializations(specRes.data.data || []);
+      } catch {
+        toast.error('Failed to load initial specializations');
+      }
+    })();
   }, []);
 
-  // Fetch doctors with search and filters
-  const fetchDoctors = async (search = '', district = filterDistrict, specializationId = selectedSpecId) => {
-    try {
+  // Fetch doctors based on filters
+  useEffect(() => {
+    const fetchDoctors = async () => {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (district) params.append('district', district);
-      if (search.trim()) params.append('search', search.trim());
-      if (specializationId) params.append('specializationId', specializationId);
-      
-      const response = await api.get(`/patients/doctors?${params.toString()}`);
-      setDoctors(response.data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch doctors:", error);
-      toast.error('Failed to load doctors');
-    } finally {
-      setLoading(false);
+      try {
+        const params = new URLSearchParams();
+        if (selectedSpecId) params.append('specializationId', selectedSpecId);
+        if (filterDistrict) params.append('district', filterDistrict);
+        if (searchQuery.trim()) params.append('search', searchQuery.trim());
+        
+        let docRes;
+        try {
+          docRes = await api.get(`/doctors?${params.toString()}`);
+        } catch {
+          docRes = await api.get(`/patients/doctors?${params.toString()}`);
+        }
+        setDoctors(docRes.data.data || []);
+      } catch (err) {
+        console.error('Error loading doctors:', err);
+        toast.error('Failed to load doctors');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctors();
+  }, [selectedSpecId, filterDistrict, searchQuery]);
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedDoctor || !form.date || !form.timeSlot) {
+      toast.error('Please select doctor, date and time slot');
+      return;
+    }
+    setBooking(true);
+    const toastId = toast.loading('Securing appointment with escrow hold...');
+    try {
+      const res = await api.post('/patients/appointments', {
+        doctorId: selectedDoctor.userId._id,
+        date: form.date,
+        timeSlot: form.timeSlot,
+      });
+
+      toast.dismiss(toastId);
+      if (res.data?.success) {
+        toast.success('Appointment booked successfully! Escrow fee held safely.');
+        navigate('/patient/appointments');
+      } else {
+        toast.error(res.data?.message || 'Failed to book appointment');
+        setBooking(false);
+      }
+    } catch (e) {
+      toast.dismiss(toastId);
+      toast.error(e?.response?.data?.message || 'Failed to book appointment');
+      setBooking(false);
     }
   };
 
-  // Fetch available dates for a doctor in a specific month
-  const fetchAvailableDates = async (doctorId, date = currentMonth) => {
-    if (!doctorId) {
-      setAvailableDates([]);
-      return;
-    }
+  const handleDateSelect = (dateStr) => {
+    setForm(prev => ({ ...prev, date: dateStr, timeSlot: '' }));
+  };
 
+  const handleCalendarMonthChange = (newMonth) => {
+    if (selectedDoctor) {
+      fetchAvailableDatesForMonth(selectedDoctor, newMonth);
+    }
+  };
+
+  const fetchAvailableDatesForMonth = async (doctor, monthDate) => {
+    setLoadingDates(true);
     try {
-      setLoadingDates(true);
-      const month = date.getMonth() + 1; // JavaScript months are 0-indexed
-      const year = date.getFullYear();
-      
-      const response = await api.get(`/doctors/${doctorId}/available-dates?month=${month}&year=${year}`);
-      setAvailableDates(response.data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch available dates:", error);
-      toast.error('Failed to load available dates');
+      const targetDate = monthDate || new Date();
+      const monthStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+      const res = await api.get(`/doctors/${doctor.userId._id}/available-dates?month=${monthStr}`);
+      setAvailableDates(res.data?.data || []);
+    } catch {
       setAvailableDates([]);
     } finally {
       setLoadingDates(false);
     }
   };
 
-  // Handle date selection from calendar
-  const handleDateSelect = (dateStr) => {
-    console.log('Date selected:', dateStr);
-    setForm({ ...form, date: dateStr, timeSlot: '' });
-  };
-
-  // Handle month change from calendar
-  const handleCalendarMonthChange = (newMonth) => {
-    setCurrentMonth(newMonth);
-  };
-
-  // Initial data fetch
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const specRes = await api.get('/specializations');
-        setSpecializations(specRes.data.data || []);
-      } catch (error) {
-        console.error("Failed to fetch specializations:", error);
-      }
-    };
-    fetchInitialData();
-  }, []);
-
-  // Fetch doctors when filters change
-  useEffect(() => {
-    fetchDoctors(searchQuery, filterDistrict, selectedSpecId);
-  }, [filterDistrict, selectedSpecId]);
-
-  // Debounced search
-  useEffect(() => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-    
-    const timeout = setTimeout(() => {
-      fetchDoctors(searchQuery, filterDistrict, selectedSpecId);
-    }, 500); // 500ms delay
-    
-    setSearchTimeout(timeout);
-    
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
-  }, [searchQuery]);
-
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'date') {
-      // Check if the selected date is available
-      if (selectedDoctor && value && !availableDates.includes(value)) {
-        toast.error('This date is not available for the selected doctor. Please choose another date.');
-        return;
-      }
-      setForm({ ...form, date: value, timeSlot: '' });
-    } else {
-      setForm({ ...form, [name]: value });
-    }
-  };
-
-  // Handle month navigation for the date picker
-  const handleMonthChange = (direction) => {
-    const newMonth = new Date(currentMonth);
-    newMonth.setMonth(currentMonth.getMonth() + direction);
-    setCurrentMonth(newMonth);
-  };
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    console.log('Form submitted with:', { date: form.date, timeSlot: form.timeSlot });
-    
-    if (!selectedDoctor || !form.date || !form.timeSlot) {
-      toast.error('Please complete all fields.');
-      return;
-    }
-    
-    setBooking(true);
-    const loadingToast = toast.loading('Processing payment...');
-    
-    try {
-      // Step 1: Create mock payment order (WITHOUT creating appointment yet)
-      const orderRes = await api.post('/mock-payments/create-booking-order', {
-        doctorId: selectedDoctor.userId._id,
-        date: form.date,
-        timeSlot: form.timeSlot,
-      });
-      
-      const order = orderRes.data.order;
-      
-      // Step 2: Simulate payment processing with user choice
-      setTimeout(async () => {
-        // Ask user if they want to simulate success or failure
-        const wantsToSucceed = window.confirm(
-          `Simulate payment?\n\n` +
-          `Amount: ₹${(order.amount / 100).toFixed(2)}\n` +
-          `Doctor: ${selectedDoctor.userId.name}\n\n` +
-          `Click OK for SUCCESS\nClick Cancel for FAILURE`
-        );
-
-        if (!wantsToSucceed) {
-          // Simulate payment failure
-          toast.dismiss(loadingToast);
-          toast.error('Payment Failed! Please try again.');
-          setBooking(false);
-          return;
-        }
-
-        try {
-          // Step 3: Verify mock payment AND create appointment
-          const verifyRes = await api.post('/mock-payments/verify-payment', {
-            orderId: order.id,
-            paymentId: `pay_${Date.now()}`,
-            // Include appointment details for creation after payment
-            appointmentDetails: {
-              doctorId: selectedDoctor.userId._id,
-              date: form.date,
-              timeSlot: form.timeSlot,
-            }
-          });
-          
-          toast.dismiss(loadingToast);
-          toast.success('Payment successful! Appointment confirmed.');
-          
-          // Redirect to success page
-          window.location.href = `/payment-success?order_id=${order.id}`;
-        } catch (verifyError) {
-          toast.dismiss(loadingToast);
-          toast.error('Payment verification failed.');
-          setBooking(false);
-        }
-      }, 1500); // Simulate payment processing delay
-      
-    } catch (error) {
-      toast.dismiss(loadingToast);
-      const errorMessage = error.response?.data?.message || 'Booking failed.';
-      toast.error(errorMessage);
-      setBooking(false);
-    }
-  };
-
-  // Clear search when district changes
-  useEffect(() => {
-    setSearchQuery('');
-  }, [filterDistrict]);
-
-  // Fetch available dates when doctor is selected or month changes
   useEffect(() => {
     if (selectedDoctor) {
-      fetchAvailableDates(selectedDoctor.userId._id, currentMonth);
+      fetchAvailableDatesForMonth(selectedDoctor, new Date());
     } else {
       setAvailableDates([]);
-      // Clear selected date if no doctor is selected
-      if (form.date) {
-        setForm({ ...form, date: '', timeSlot: '' });
-      }
     }
-  }, [selectedDoctor, currentMonth]);
+  }, [selectedDoctor]);
 
-  const [availableSlots, setAvailableSlots] = useState([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-
-  // Derive filtered and sorted slots based on user's local time
   const filteredAndSortedSlots = useMemo(() => {
-    if (!Array.isArray(availableSlots) || availableSlots.length === 0) return [];
-    if (!form?.date) return availableSlots.slice();
-
-    // Determine if selected date is today in user's local time
-    const now = new Date(nowMs);
-    const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const isToday = form.date === todayLocal;
-
-    const parseTimeToMinutes = (timeStr) => {
-      const [h, m] = timeStr.split(':').map(Number);
-      return h * 60 + m;
+    if (!availableSlots.length || !form.date) return [];
+    
+    const parseTime = (timeStr) => {
+      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+      if (!match) return 0;
+      let [, hours, minutes, period] = match;
+      hours = parseInt(hours, 10);
+      minutes = parseInt(minutes, 10);
+      if (period) {
+        if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+        if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+      }
+      return hours * 60 + minutes;
     };
 
-    // Filter: if today, only keep slots whose start time is > now + 10 minutes
-    const filtered = availableSlots.filter((slot) => {
-      if (!isToday) return true;
-      const start = slot.split('-')[0]; // format HH:MM-HH:MM
-      const [currentH, currentM] = [now.getHours(), now.getMinutes()];
-      const currentMinutes = currentH * 60 + currentM;
-      const slotMinutes = parseTimeToMinutes(start);
-      return slotMinutes > currentMinutes + 10;
+    return [...availableSlots].sort((a, b) => {
+      const timeA = a.split('-')[0].trim();
+      const timeB = b.split('-')[0].trim();
+      return parseTime(timeA) - parseTime(timeB);
     });
+  }, [availableSlots, form.date]);
 
-    // Sort slots by start time (ascending)
-    return filtered.sort((a, b) => {
-      const aMins = parseTimeToMinutes(a.split('-')[0]);
-      const bMins = parseTimeToMinutes(b.split('-')[0]);
-      return aMins - bMins;
-    });
-  }, [availableSlots, form?.date, nowMs]);
-
-  // Fetch available slots when doctor and date are selected
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (!selectedDoctor || !form.date) {
         setAvailableSlots([]);
         return;
       }
-
       setLoadingSlots(true);
       try {
-        const response = await api.get(`/doctors/${selectedDoctor.userId._id}/available-slots?date=${form.date}`);
-        setAvailableSlots(response.data.data || []);
-      } catch (error) {
-        console.error('Error fetching available slots:', error);
+        const res = await api.get(`/doctors/${selectedDoctor.userId._id}/available-slots?date=${form.date}`);
+        setAvailableSlots(res.data?.data || []);
+      } catch {
         setAvailableSlots([]);
-        toast.error('Failed to load available time slots');
       } finally {
         setLoadingSlots(false);
       }
@@ -306,31 +182,56 @@ export default function BookAppointment() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-text-primary dark:text-text-primary-dark">Find Your Doctor</h1>
-        <p className="text-text-secondary dark:text-text-secondary-dark">Book your next appointment with ease.</p>
+        <h1 className="text-3xl font-bold text-text-primary">Find Your Doctor</h1>
+        <p className="text-text-secondary">Book your next appointment with ease.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Filters */}
-        <div className="md:col-span-1 bg-white dark:bg-bg-card-dark p-4 rounded-xl shadow-card dark:shadow-card-dark space-y-4 self-start">
-          <h2 className="font-semibold text-text-primary border-b pb-2">Filters</h2>
-          <AppSelect
-            label="District"
-            placeholder="All Districts"
-            value={filterDistrict}
-            onChange={setFilterDistrict}
-            options={[{ value: '', label: 'All Districts' }, ...KERALA_DISTRICTS.map(d => ({ value: d, label: d }))]}
-            icon={FiMapPin}
-            searchable
-            searchPlaceholder="Search districts..."
-          />
-          <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">Specialization</label>
-            <div className="space-y-1">
-              {[{ _id: null, name: 'All' }, ...specializations].map(spec => (
-                <button key={spec._id || 'all'}
+        <div className="md:col-span-1 bg-bg-card p-5 rounded-2xl shadow-card border border-border-subtle space-y-4 self-start">
+          <h2 className="font-bold text-text-primary border-b border-border-subtle pb-3 text-base">Filters</h2>
+
+          {/* District Dropdown */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary">District</label>
+            <AppSelect
+              value={filterDistrict}
+              onChange={(val) => setFilterDistrict(typeof val === 'object' && val?.target ? val.target.value : (val || ''))}
+              placeholder="All Districts"
+              options={[
+                { value: '', label: 'All Districts' },
+                ...KERALA_DISTRICTS.map((d) => ({ value: d, label: d }))
+              ]}
+              icon={<FiMapPin className="text-text-muted" />}
+            />
+          </div>
+
+          {/* Specializations List */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-text-secondary block">Specialization</label>
+            <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+              <button
+                type="button"
+                onClick={() => setSelectedSpecId(null)}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                  !selectedSpecId
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-text-secondary hover:bg-bg-muted hover:text-text-primary'
+                }`}
+              >
+                All
+              </button>
+              {specializations.map((spec) => (
+                <button
+                  key={spec._id}
+                  type="button"
                   onClick={() => setSelectedSpecId(spec._id)}
-                  className={`w-full text-left p-2 text-sm rounded-md transition-colors ${selectedSpecId === spec._id ? 'bg-primary/10 text-primary font-semibold' : 'hover:bg-primary/5'}`}>
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    selectedSpecId === spec._id
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-text-secondary hover:bg-bg-muted hover:text-text-primary'
+                  }`}
+                >
                   {spec.name}
                 </button>
               ))}
@@ -338,178 +239,197 @@ export default function BookAppointment() {
           </div>
         </div>
 
-        {/* Doctor List */}
+        {/* Doctor List & Search */}
         <div className="md:col-span-3 space-y-4">
-          {/* Search Bar */}
-          <div className="bg-white dark:bg-bg-card-dark p-4 rounded-xl shadow-card dark:shadow-card-dark">
-            <div className="relative">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-              <input
-                type="text"
-                placeholder="Search doctors by name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-bg-page border border-slate-300/70 rounded-lg h-12 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
-            </div>
+          {/* Search bar */}
+          <div className="relative">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search doctors by name..."
+              className="w-full pl-12 pr-4 py-3.5 bg-bg-card text-text-primary border border-border-subtle rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm shadow-sm transition-all"
+            />
           </div>
-          
+
+          {/* Doctors Grid */}
           {loading ? (
-            <div className="text-center p-6">Loading doctors...</div>
-          ) : doctors.length > 0 ? (
-            doctors.map(doc => (
-              <div key={doc.userId._id} className="bg-white dark:bg-bg-card-dark p-4 rounded-xl shadow-card dark:shadow-card-dark flex items-center justify-between transition-shadow hover:shadow-lg">
-                <div className="flex items-center">
-                  <img 
-                    src={doc.photoUrl ? `http://localhost:5000${doc.photoUrl}` : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(doc.userId.name) + '&size=150&background=0D8ABC&color=fff'} 
-                    alt={doc.userId.name} 
-                    className="w-16 h-16 rounded-full mr-4 object-cover border-2 border-gray-200" 
-                    onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(doc.userId.name) + '&size=150&background=0D8ABC&color=fff'; }}
-                  />
-                  <div>
-                    <h3 className="font-bold text-lg text-text-primary">{doc.userId.name}</h3>
-                    <p className="text-sm text-primary font-medium">{doc.specializationId?.name}</p>
-                    {doc.hospitalId && (
-                      <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
-                        <FiMapPin className="w-3 h-3" />
-                        {doc.hospitalId.name}, {doc.hospitalId.district}
+            <div className="flex flex-col items-center justify-center p-12 bg-bg-card rounded-2xl border border-border-subtle space-y-3">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs text-text-muted">Loading qualified doctors...</p>
+            </div>
+          ) : doctors.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12 bg-bg-card rounded-2xl border border-border-subtle text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-bg-muted flex items-center justify-center text-text-muted">
+                <FiSearch className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-text-primary">No doctors found for your selected filters.</h3>
+              <p className="text-xs text-text-muted max-w-sm">
+                Try selecting "All Districts" or clearing your specialization filter to see more results.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {doctors.map((doctor) => (
+                <div
+                  key={doctor._id}
+                  className="bg-bg-card p-5 rounded-2xl shadow-card border border-border-subtle space-y-4 flex flex-col justify-between hover:border-primary/40 transition-all group"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary font-black text-lg flex items-center justify-center flex-shrink-0">
+                        {doctor.userId?.name?.charAt(0) || 'D'}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-text-primary text-base group-hover:text-primary transition-colors">
+                          Dr. {doctor.userId?.name}
+                        </h3>
+                        <p className="text-xs text-primary font-semibold">
+                          {doctor.specializationId?.name || 'General Physician'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 text-xs text-text-secondary">
+                      <p className="flex items-center gap-1.5">
+                        <FiMapPin className="w-3.5 h-3.5 text-text-muted" />
+                        {doctor.hospitalId?.name || 'Private Clinic'}, {doctor.district}
                       </p>
-                    )}
-                    <p className="text-xs text-text-secondary mt-1">{doc.qualifications}</p>
-                    <p className="text-sm font-semibold mt-1 text-yellow-500">{typeof doc.averageRating === 'number' ? `${Number(doc.averageRating).toFixed(1)} ★` : 'No rating'}</p>
+                      <p className="text-text-muted text-[11px]">
+                        Fee: ₹{((doctor.consultationFee || 25000) / 100).toFixed(2)} (Escrow Held)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-border-subtle">
+                    <button
+                      type="button"
+                      onClick={() => setProfileDoctor(doctor)}
+                      className="flex-1 py-2 px-3 bg-bg-muted hover:bg-bg-card-hover border border-border-subtle rounded-xl text-xs font-semibold text-text-primary transition-colors"
+                    >
+                      View Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDoctor(doctor);
+                        setForm({ date: todayIsoDate, timeSlot: '' });
+                      }}
+                      className="flex-1 py-2 px-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
+                    >
+                      Book Slot
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setProfileDoctor(doc)} className="bg-gray-100 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-200">
-                    View Profile
-                  </button>
-                  <button onClick={() => setSelectedDoctor(doc)} className="bg-primary text-white font-bold px-4 py-2 rounded-lg hover:bg-primary-light transition-transform hover:scale-105">
-                    View Availability
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="bg-white dark:bg-bg-card-dark p-6 rounded-xl shadow-card dark:shadow-card-dark text-center text-text-secondary dark:text-text-secondary-dark">
-              <FiSearch className="mx-auto text-4xl mb-2" />
-              <p>
-                {searchQuery.trim() 
-                  ? `No doctors found matching "${searchQuery}".` 
-                  : "No doctors found for your selected filters."
-                }
-              </p>
-              {searchQuery.trim() && (
-                <p className="text-sm mt-2">Try a different search term or clear your search.</p>
-              )}
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Booking Modal - Viewport Centered (Portal + fixed) */}
-      {selectedDoctor && createPortal(
-        <>
-          {/* Backdrop (covers viewport) */}
-          <div
-            className="fixed inset-0 z-[1200] bg-white/10 backdrop-blur-sm backdrop-saturate-150 animate-fade-in-fast"
-            onClick={() => setSelectedDoctor(null)}
-          />
-
-          {/* Modal (centered to viewport, not parent) */}
-          <div className="fixed z-[1201] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-bg-card-dark rounded-xl shadow-xl dark:shadow-card-dark p-6">
-            <button onClick={() => setSelectedDoctor(null)} className="absolute top-4 right-4 text-text-secondary hover:text-text-primary">
-              <FiX size={24} />
-            </button>
-            <div className="flex items-center mb-6">
-              <img 
-                src={selectedDoctor.photoUrl ? `http://localhost:5000${selectedDoctor.photoUrl}` : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(selectedDoctor.userId.name) + '&size=200&background=0D8ABC&color=fff'} 
-                alt={selectedDoctor.userId.name} 
-                className="w-20 h-20 rounded-full mr-4 object-cover border-2 border-gray-200" 
-                onError={(e) => { e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(selectedDoctor.userId.name) + '&size=200&background=0D8ABC&color=fff'; }}
-              />
+      {/* Booking Drawer / Modal */}
+      {selectedDoctor && (
+        <div className="fixed inset-0 z-[1300] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative z-[1301] w-full max-w-lg bg-bg-card text-text-primary rounded-3xl shadow-2xl border border-border-subtle overflow-hidden animate-fade-in-fast">
+            <div className="px-6 py-5 border-b border-border-subtle bg-bg-muted flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-text-primary">{selectedDoctor.userId.name}</h2>
-                <p className="text-primary font-medium">{selectedDoctor.specializationId?.name}</p>
-                {selectedDoctor.hospitalId && (
-                  <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
-                    <FiMapPin className="w-3 h-3" />
-                    {selectedDoctor.hospitalId.name}, {selectedDoctor.hospitalId.district}
-                  </p>
-                )}
+                <h3 className="text-lg font-bold text-text-primary">Book Appointment</h3>
+                <p className="text-xs text-text-muted">Dr. {selectedDoctor.userId?.name}</p>
               </div>
+              <button
+                onClick={() => setSelectedDoctor(null)}
+                className="p-2 rounded-xl text-text-muted hover:text-text-primary hover:bg-bg-card-hover transition-colors"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
             </div>
-            <form onSubmit={onSubmit} className="space-y-6">
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-text-secondary">Select Date</label>
-                <Calendar
-                  selectedDate={form.date}
-                  onDateSelect={handleDateSelect}
-                  availableDates={availableDates}
-                  minDate={todayIsoDate}
-                  loading={loadingDates}
-                  onMonthChange={handleCalendarMonthChange}
-                  className="w-full"
+
+            <form onSubmit={onSubmit} className="p-6 space-y-5">
+              {/* Date selection */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                  Select Date
+                </label>
+                <input
+                  type="date"
+                  min={todayIsoDate}
+                  value={form.date}
+                  onChange={(e) => handleDateSelect(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl text-xs focus:outline-none focus:border-primary"
+                  required
                 />
               </div>
-              <AppSelect
-                label="Time Slot"
-                placeholder={loadingSlots ? "Loading slots..." : filteredAndSortedSlots.length === 0 && form.date ? "No slots available" : "Select a time"}
-                value={form.timeSlot}
-                onChange={(value) => setForm({ ...form, timeSlot: value })}
-                options={filteredAndSortedSlots.map(slot => ({ value: slot, label: slot }))}
-                icon={FiClock}
-                required
-                disabled={!form.date || loadingSlots}
-                searchPlaceholder="Search time slots..."
-              />
-              {form.date && form.timeSlot && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">Appointment Summary</h4>
-                  <div className="space-y-1 text-sm text-blue-800">
-                    <p><span className="font-medium">Doctor:</span> {selectedDoctor.userId.name}</p>
-                    <p><span className="font-medium">Specialization:</span> {selectedDoctor.specializationId?.name}</p>
-                    <p><span className="font-medium">Date:</span> {new Date(form.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p><span className="font-medium">Time:</span> {form.timeSlot}</p>
-                    <p className="pt-2 border-t border-blue-300 mt-2">
-                      <span className="font-medium">Consultation Fee:</span> 
-                      <span className="text-lg font-bold ml-2">
-                        ₹{((selectedDoctor.consultationFee || 25000) / 100).toFixed(2)}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Consultation Fee Display - Prominent */}
-              {form.date && form.timeSlot && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-green-700 font-medium">Consultation Fee</p>
-                      <p className="text-xs text-green-600">One-time booking charge</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-bold text-green-700">
-                        ₹{((selectedDoctor.consultationFee || 25000) / 100).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
-              <button type="submit" disabled={booking || !form.date || !form.timeSlot} className="w-full bg-primary text-white font-bold h-12 rounded-lg disabled:opacity-50 hover:bg-primary-light transition-all">
-                {booking ? 'Processing...' : `Proceed to Payment - ₹${((selectedDoctor.consultationFee || 25000) / 100).toFixed(2)}`}
-              </button>
+              {/* Time Slot Selection */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                  Select Available Time Slot
+                </label>
+                {loadingSlots ? (
+                  <div className="p-4 text-center text-xs text-text-muted">Loading available slots...</div>
+                ) : filteredAndSortedSlots.length === 0 ? (
+                  <div className="p-4 bg-bg-muted rounded-xl text-center text-xs text-text-muted border border-border-subtle">
+                    No available slots for this date. Please choose another date.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+                    {filteredAndSortedSlots.map((slot, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setForm(prev => ({ ...prev, timeSlot: slot }))}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all ${
+                          form.timeSlot === slot
+                            ? 'bg-primary text-white border-primary shadow-sm'
+                            : 'bg-bg-muted border-border-subtle text-text-secondary hover:bg-bg-card-hover hover:text-text-primary'
+                        }`}
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3.5 bg-primary-subtle border border-primary-border rounded-xl text-xs text-text-secondary">
+                <span className="font-bold text-primary block mb-0.5">Escrow Protection</span>
+                Your fee of ₹{((selectedDoctor.consultationFee || 25000) / 100).toFixed(2)} is held in escrow until the doctor completes the consultation.
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDoctor(null)}
+                  className="flex-1 py-3 border border-border-subtle rounded-2xl text-text-secondary font-semibold text-xs hover:bg-bg-card-hover transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={booking || !form.date || !form.timeSlot}
+                  className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-2xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {booking ? 'Securing Slot...' : 'Confirm & Book Slot'}
+                </button>
+              </div>
             </form>
           </div>
-          <style>{`.animate-fade-in-fast { animation: fade-in 0.2s ease-out forwards; }`}</style>
-        </>,
-        document.body
+        </div>
       )}
 
-      {profileDoctor && createPortal(
-        <DoctorProfileModal open={!!profileDoctor} doctor={profileDoctor} onClose={() => setProfileDoctor(null)} />,
-        document.body
+      {/* Doctor Profile Modal */}
+      {profileDoctor && (
+        <DoctorProfileModal
+          open={Boolean(profileDoctor)}
+          doctor={profileDoctor}
+          onClose={() => setProfileDoctor(null)}
+          onBookAppointment={(doc) => {
+            setProfileDoctor(null);
+            setSelectedDoctor(doc);
+            setForm({ date: todayIsoDate, timeSlot: '' });
+          }}
+        />
       )}
     </div>
   );

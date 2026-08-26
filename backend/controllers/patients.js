@@ -911,20 +911,23 @@ exports.searchPatients = async (req, res) => {
     const { query } = req.query;
     const doctorId = req.user.id;
 
-    // Validate that requester is a doctor
-    if (req.user.role !== 'doctor') {
+    // Validate that requester is a doctor or admin
+    if (req.user.role !== 'doctor' && req.user.role !== 'admin') {
       return res.status(403).json({ 
         success: false, 
-        message: 'Only doctors can search patients' 
+        message: 'Only doctors and admins can search patients' 
       });
     }
 
-    if (!query || query.trim().length < 2) {
+    if (!query || query.trim().length < 1) {
       return res.json({ 
         success: true, 
         data: [] 
       });
     }
+
+    const trimmedQuery = query.trim();
+    const searchRegex = new RegExp(trimmedQuery, 'i');
 
     // Prefer patients who have interacted with this doctor, but also fall back to global search
     const appointmentPatientIds = await Appointment.find({ doctorId }).distinct('patientId');
@@ -932,8 +935,8 @@ exports.searchPatients = async (req, res) => {
     const baseCriteria = {
       role: 'patient',
       $or: [
-        { name: { $regex: query, $options: 'i' } },
-        { email: { $regex: query, $options: 'i' } }
+        { name: searchRegex },
+        { email: searchRegex }
       ]
     };
 
@@ -945,11 +948,18 @@ exports.searchPatients = async (req, res) => {
 
     let patients = preferredPatients;
 
-    // If none found, perform a broader search across all patients (limited)
-    if (patients.length === 0) {
-      patients = await User.find(baseCriteria)
+    // If fewer than 20 found, search broadly across all patients
+    if (patients.length < 20) {
+      const remainingLimit = 20 - patients.length;
+      const existingIds = patients.map(p => p._id);
+      const additionalPatients = await User.find({
+        ...baseCriteria,
+        _id: { $nin: existingIds }
+      })
         .select('name email district photoUrl')
-        .limit(20);
+        .limit(remainingLimit);
+
+      patients = [...patients, ...additionalPatients];
     }
 
     res.json({ 

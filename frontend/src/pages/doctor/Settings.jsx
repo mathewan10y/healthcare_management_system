@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FiSave, FiDollarSign, FiUser, FiMapPin, FiBook, FiAward, FiHome } from 'react-icons/fi';
+import { FiSave, FiDollarSign, FiUser, FiMapPin, FiHome } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -107,10 +107,10 @@ export default function DoctorSettings() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Consultation Fee - Highlighted */}
-        <div className="bg-gradient-to-r from-primary/10 to-blue-50 border-2 border-primary/30 rounded-xl p-6">
+        <div className="bg-bg-card border-2 border-primary/30 rounded-2xl p-6 shadow-card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-primary/20 rounded-lg">
-              <FiDollarSign className="w-6 h-6 text-primary" />
+            <div className="p-3 bg-primary/15 text-primary rounded-xl">
+              <FiDollarSign className="w-6 h-6" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-text-primary">Consultation Fee</h2>
@@ -118,8 +118,8 @@ export default function DoctorSettings() {
             </div>
           </div>
           
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-text-secondary">
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary">
               Fee Amount (₹)
             </label>
             <div className="relative">
@@ -132,19 +132,19 @@ export default function DoctorSettings() {
                 min="0"
                 value={formData.consultationFee}
                 onChange={(e) => setFormData({ ...formData, consultationFee: e.target.value })}
-                className="w-full pl-12 pr-4 py-4 text-2xl font-bold border-2 border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                className="w-full pl-12 pr-4 py-3 text-2xl font-bold bg-bg-input text-text-primary border-2 border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                 placeholder="250.00"
                 required
               />
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-sm pt-1">
               <p className="text-text-secondary">
                 Current fee: <span className="font-semibold text-primary">
                   ₹{profile?.consultationFee ? (profile.consultationFee / 100).toFixed(2) : '250.00'}
                 </span>
               </p>
               {formData.consultationFee && parseFloat(formData.consultationFee) !== (profile?.consultationFee / 100) && (
-                <p className="text-orange-600 font-medium">
+                <p className="text-amber-500 font-medium text-xs">
                   New fee: ₹{parseFloat(formData.consultationFee).toFixed(2)}
                 </p>
               )}
@@ -154,68 +154,76 @@ export default function DoctorSettings() {
 
         {/* Hospital Information - Read Only */}
         {profile?.hospitalId && (
-          <div className="bg-blue-50 rounded-lg border border-blue-200 p-6">
+          <div className="bg-bg-card rounded-2xl border border-border-subtle p-6 shadow-card">
             <div className="flex items-center gap-3 mb-4">
-              <FiHome className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold text-text-primary">Hospital Information</h2>
+              <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                <FiHome className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg font-bold text-text-primary">Hospital Information</h2>
             </div>
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Hospital:</span> {profile.hospitalId.name}
-              </p>
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">Location:</span> {profile.hospitalId.district}, {profile.hospitalId.city || 'Kerala'}
-              </p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="p-3 bg-bg-muted rounded-xl border border-border-subtle">
+                <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-1">Hospital</span>
+                <span className="text-sm font-bold text-text-primary">{profile.hospitalId.name}</span>
+              </div>
+              <div className="p-3 bg-bg-muted rounded-xl border border-border-subtle">
+                <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-1">Location</span>
+                <span className="text-sm font-semibold text-text-primary">{profile.hospitalId.district}, {profile.hospitalId.city || 'Kerala'}</span>
+              </div>
               {profile.hospitalId.address && (
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Address:</span> {profile.hospitalId.address}
-                </p>
+                <div className="p-3 bg-bg-muted rounded-xl border border-border-subtle">
+                  <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-1">Address</span>
+                  <span className="text-sm text-text-secondary">{profile.hospitalId.address}</span>
+                </div>
               )}
               {profile.hospitalId.phone && (
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Phone:</span> {profile.hospitalId.phone}
-                </p>
+                <div className="p-3 bg-bg-muted rounded-xl border border-border-subtle">
+                  <span className="text-xs font-semibold text-text-muted uppercase tracking-wider block mb-1">Phone</span>
+                  <span className="text-sm text-text-secondary">{profile.hospitalId.phone}</span>
+                </div>
               )}
             </div>
           </div>
         )}
 
         {/* Basic Information */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-bg-card rounded-2xl border border-border-subtle p-6 shadow-card">
           <div className="flex items-center gap-3 mb-4">
-            <FiUser className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-text-primary">Basic Information</h2>
+            <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+              <FiUser className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-bold text-text-primary">Basic Information</h2>
           </div>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                 Bio
               </label>
               <textarea
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-3 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
                 placeholder="Tell patients about yourself..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                 Qualifications
               </label>
               <input
                 type="text"
                 value={formData.qualifications}
                 onChange={(e) => setFormData({ ...formData, qualifications: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
                 placeholder="MBBS, MD, etc."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                 Years of Experience
               </label>
               <input
@@ -223,56 +231,58 @@ export default function DoctorSettings() {
                 min="0"
                 value={formData.experienceYears}
                 onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
                 placeholder="10"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                 Languages Spoken
               </label>
               <input
                 type="text"
                 value={formData.languages.join(', ')}
                 onChange={handleLanguageChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="English, Hindi, Tamil (comma separated)"
+                className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
+                placeholder="English, Hindi, Malayalam (comma separated)"
               />
             </div>
           </div>
         </div>
 
         {/* Location Information */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-bg-card rounded-2xl border border-border-subtle p-6 shadow-card">
           <div className="flex items-center gap-3 mb-4">
-            <FiMapPin className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold text-text-primary">Location</h2>
+            <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+              <FiMapPin className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-bold text-text-primary">Location</h2>
           </div>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                 Clinic/Hospital Location
               </label>
               <input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
                 placeholder="123 Medical Street, City"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
                 District
               </label>
               <input
                 type="text"
                 value={formData.district}
                 onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
                 placeholder="District name"
               />
             </div>
@@ -284,14 +294,14 @@ export default function DoctorSettings() {
           <button
             type="button"
             onClick={loadProfile}
-            className="px-6 py-3 border border-gray-300 text-text-primary rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-6 py-2.5 border border-border-subtle text-text-secondary rounded-xl hover:bg-bg-card-hover transition-colors font-medium text-sm"
           >
             Reset
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-hover transition-colors font-semibold text-sm shadow-md disabled:opacity-50"
           >
             {saving ? (
               <>
@@ -309,9 +319,9 @@ export default function DoctorSettings() {
       </form>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">💡 About Consultation Fee</h3>
-        <ul className="text-sm text-blue-800 space-y-1">
+      <div className="bg-primary-subtle border border-primary-border rounded-2xl p-5">
+        <h3 className="font-bold text-primary mb-2 text-sm">💡 About Consultation Fee</h3>
+        <ul className="text-xs text-text-secondary space-y-1.5">
           <li>• Patients will see this fee before booking appointments</li>
           <li>• Fee is charged per consultation/appointment</li>
           <li>• You can update your fee anytime</li>

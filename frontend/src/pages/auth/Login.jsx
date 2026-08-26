@@ -32,18 +32,18 @@ export default function Login() {
     }
   };
   
-  const btnBase = "w-full px-4 py-2 rounded-lg font-semibold transition-all duration-300 ease-in-out";
-  const btnActive = `bg-primary text-white shadow-md`;
-  const btnInactive = `bg-bg-page text-text-secondary hover:bg-slate-200`;
+  const btnBase = "w-full px-4 py-2.5 rounded-xl font-bold text-xs transition-all duration-200";
+  const btnActive = "bg-primary text-white shadow-md";
+  const btnInactive = "bg-bg-muted text-text-secondary hover:text-text-primary hover:bg-bg-card-hover border border-border-subtle";
 
   return (
     <div className="flex flex-col">
       {/* Role Switcher */}
-      <div className="grid grid-cols-2 gap-2 p-1 bg-bg-page rounded-lg mb-6">
-        <button onClick={() => setRole('patient')} className={`${btnBase} ${role === 'patient' ? btnActive : btnInactive}`}>
+      <div className="grid grid-cols-2 gap-2 p-1.5 bg-bg-muted border border-border-subtle rounded-2xl mb-6">
+        <button type="button" onClick={() => setRole('patient')} className={`${btnBase} ${role === 'patient' ? btnActive : btnInactive}`}>
           I'm a Patient
         </button>
-        <button onClick={() => setRole('doctor')} className={`${btnBase} ${role === 'doctor' ? btnActive : btnInactive}`}>
+        <button type="button" onClick={() => setRole('doctor')} className={`${btnBase} ${role === 'doctor' ? btnActive : btnInactive}`}>
           I'm a Doctor
         </button>
       </div>

@@ -10,6 +10,7 @@ const { Server } = require('socket.io');
 const morgan = require('morgan');
 const logger = require('./config/logger');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
+const { initCronSweeper } = require('./services/cronSweeper');
 
 const app = express();
 const server = http.createServer(app);
@@ -42,8 +43,12 @@ const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
+
+app.set('io', io);
+global.io = io;
 
 // Online users tracking
 let onlineUsers = {};
@@ -60,16 +65,28 @@ const removeUser = (socketId) => {
   });
 };
 
-// Socket.IO connection handling with error handling
+// Socket.IO connection handling with error handling & room subscription
 io.on('connection', (socket) => {
   logger.info(`Socket.IO: User connected - ${socket.id}`);
 
   socket.on('newUser', (userId) => {
     try {
       addUser(userId, socket.id);
-      logger.info(`Socket.IO: User ${userId} added to online list`);
+      socket.join(`user_${userId}`);
+      socket.join(`patient_${userId}`);
+      socket.join(`doctor_${userId}`);
+      logger.info(`Socket.IO: User ${userId} registered and joined user rooms`);
     } catch (error) {
       logger.error('Socket.IO: Error adding user', { error: error.message, userId, socketId: socket.id });
+    }
+  });
+
+  socket.on('joinAppointment', (appointmentId) => {
+    try {
+      socket.join(`appointment_${appointmentId}`);
+      logger.info(`Socket.IO: Socket ${socket.id} joined appointment_${appointmentId}`);
+    } catch (error) {
+      logger.error('Socket.IO: Error joining appointment room', { error: error.message });
     }
   });
 
@@ -130,6 +147,8 @@ mongoose
   })
   .then(() => {
     logger.info('MongoDB connected successfully');
+    // Initialize Nightly Cron Sweeper
+    initCronSweeper();
   })
   .catch((err) => {
     logger.error('MongoDB connection error:', { error: err.message, stack: err.stack });
@@ -155,6 +174,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/patients', require('./routes/patients'));
 app.use('/api/doctors', require('./routes/doctors'));
+app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/specializations', require('./routes/specializations'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
@@ -174,7 +194,6 @@ app.use(errorHandler);
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   logger.error('Unhandled Promise Rejection:', { error: err.message, stack: err.stack });
-  // Close server & exit process
   server.close(() => {
     process.exit(1);
   });
@@ -183,7 +202,6 @@ process.on('unhandledRejection', (err) => {
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   logger.error('Uncaught Exception:', { error: err.message, stack: err.stack });
-  // Close server & exit process
   server.close(() => {
     process.exit(1);
   });

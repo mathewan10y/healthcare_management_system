@@ -75,7 +75,7 @@ const NotificationBell = () => {
       case 'kyc':
         return <FiCheck className="w-4 h-4 text-yellow-500" />;
       default:
-        return <FiBell className="w-4 h-4 text-gray-500" />;
+        return <FiBell className="w-4 h-4 text-gray-400 dark:text-gray-300" />;
     }
   };
 
@@ -84,14 +84,14 @@ const NotificationBell = () => {
       {/* Bell Icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-150"
+        className="relative p-2 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-sidebar-hover border border-border-subtle transition-colors duration-150"
         aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
       >
         <FiBell className="w-5 h-5" />
         
         {/* Unread Count Badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4.5 min-w-[18px] px-1 flex items-center justify-center font-bold shadow-sm">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -99,40 +99,41 @@ const NotificationBell = () => {
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] max-h-96 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 sm:w-88 bg-bg-card text-text-primary rounded-2xl shadow-xl border border-border-subtle z-[9999] max-h-96 overflow-hidden animate-fade-in">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+          <div className="px-4 py-3 border-b border-border-subtle flex items-center justify-between bg-bg-muted">
+            <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-bg-sidebar-hover"
+              aria-label="Close notifications"
             >
               <FiX className="w-4 h-4" />
             </button>
           </div>
 
           {/* Notifications List */}
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-72 overflow-y-auto divide-y divide-border-subtle">
             {loading ? (
-              <div className="px-4 py-8 text-center text-gray-500">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <div className="px-4 py-8 text-center text-text-muted">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
                 Loading notifications...
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-500">
-                <FiBell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p>No notifications yet</p>
+              <div className="px-4 py-8 text-center text-text-muted">
+                <FiBell className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">No notifications yet</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div>
                 {notifications.map((notification) => (
                   <Link
                     key={notification._id}
                     to={notification.link || '#'}
                     onClick={() => handleNotificationClick(notification)}
                     className={cn(
-                      'block px-4 py-3 hover:bg-gray-50 transition-colors duration-150',
-                      !notification.read && 'bg-blue-50 border-l-4 border-l-blue-500'
+                      'block px-4 py-3 hover:bg-bg-sidebar-hover transition-colors duration-150',
+                      !notification.read && 'bg-blue-50/70 dark:bg-blue-950/30 border-l-4 border-l-primary'
                     )}
                   >
                     <div className="flex items-start space-x-3">
@@ -144,12 +145,12 @@ const NotificationBell = () => {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <p className={cn(
-                          'text-sm text-gray-900',
-                          !notification.read && 'font-medium'
+                          'text-sm text-text-primary',
+                          !notification.read ? 'font-semibold' : 'font-normal'
                         )}>
                           {notification.message}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-text-muted mt-1">
                           {formatTimeAgo(notification.createdAt)}
                         </p>
                       </div>
@@ -157,14 +158,14 @@ const NotificationBell = () => {
                       {/* Actions */}
                       <div className="flex-shrink-0 flex items-center space-x-1">
                         {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-primary rounded-full"></div>
                         )}
                         <button
                           onClick={(e) => handleDeleteNotification(e, notification._id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                          className="text-text-muted hover:text-red-500 transition-colors p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30"
                           aria-label="Delete notification"
                         >
-                          <FiTrash2 className="w-3 h-3" />
+                          <FiTrash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -176,13 +177,13 @@ const NotificationBell = () => {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="px-4 py-2 border-t border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="px-4 py-2 border-t border-border-subtle bg-bg-muted">
+              <div className="flex items-center justify-between text-xs text-text-muted">
                 <span>{notifications.length} notification{notifications.length !== 1 ? 's' : ''}</span>
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-primary hover:text-primary-hover font-medium"
                   >
                     Mark all as read
                   </button>

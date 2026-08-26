@@ -4,24 +4,23 @@ import { FiSave, FiArrowLeft, FiPlus, FiTrash2, FiAlertCircle, FiCheck } from 'r
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
-// Move these components outside to prevent re-creation on every render
 const FormSection = ({ title, children }) => (
-  <div className="bg-white rounded-lg border border-gray-200 p-6">
-    <h3 className="text-lg font-semibold text-text-primary mb-4">{title}</h3>
+  <div className="bg-bg-card rounded-2xl border border-border-subtle p-6 shadow-card">
+    <h3 className="text-lg font-bold text-text-primary mb-4">{title}</h3>
     {children}
   </div>
 );
 
 const SelectField = ({ label, value, onChange, options }) => (
   <div>
-    <label className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
+    <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">{label}</label>
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+      className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
     >
       {options.map(opt => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
+        <option key={opt.value} value={opt.value} className="bg-bg-card text-text-primary">{opt.label}</option>
       ))}
     </select>
   </div>
@@ -91,13 +90,11 @@ export default function EditMedicalHistory() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Remove temporary _id fields used for React keys before sending to backend
       const cleanArray = (arr) => arr.map(item => {
         const { _id, ...rest } = item;
         return rest;
       });
 
-      // Prepare data with proper types and clean arrays
       const dataToSend = {
         ...formData,
         height: formData.height ? Number(formData.height) : null,
@@ -111,7 +108,7 @@ export default function EditMedicalHistory() {
       
       await api.put(`/medical-history/patient/${patientId}`, dataToSend);
       toast.success('Medical history updated successfully!');
-      loadMedicalHistory(); // Reload to show updated status
+      loadMedicalHistory();
     } catch (error) {
       console.error('Save error:', error);
       toast.error(error?.response?.data?.message || 'Failed to update medical history');
@@ -125,7 +122,7 @@ export default function EditMedicalHistory() {
     try {
       await api.post(`/medical-history/patient/${patientId}/approve`);
       toast.success('Medical history approved successfully!');
-      loadMedicalHistory(); // Reload to show approval stamp
+      loadMedicalHistory();
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to approve medical history');
     } finally {
@@ -262,24 +259,25 @@ export default function EditMedicalHistory() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/doctor/appointments')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl border border-border-subtle transition-colors"
+            aria-label="Back to appointments"
           >
             <FiArrowLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-3xl font-bold text-text-primary">Edit Medical History</h1>
-            <p className="text-text-secondary">Patient: {patientName || 'Unknown'}</p>
+            <p className="text-xs text-text-muted mt-0.5">Patient: <span className="font-semibold text-text-primary">{patientName || 'Unknown'}</span></p>
           </div>
         </div>
         <div className="flex gap-3">
           <button
             onClick={handleSave}
             disabled={saving || approving}
-            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-light transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-hover transition-colors font-semibold text-sm shadow-md disabled:opacity-50"
           >
             {saving ? (
               <>
@@ -296,7 +294,7 @@ export default function EditMedicalHistory() {
           <button
             onClick={handleApprove}
             disabled={saving || approving || medicalHistory?.approvalStatus === 'approved'}
-            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors font-semibold text-sm shadow-md disabled:opacity-50"
             title={medicalHistory?.approvalStatus === 'approved' ? 'Already approved' : 'Approve medical history'}
           >
             {approving ? (
@@ -316,13 +314,13 @@ export default function EditMedicalHistory() {
 
       {/* Approval Status Banner */}
       {medicalHistory?.approvalStatus === 'approved' && medicalHistory?.approvedBy && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-4">
           <div className="flex items-start gap-3">
-            <FiCheck className="w-5 h-5 text-green-600 mt-0.5" />
+            <FiCheck className="w-5 h-5 text-green-500 mt-0.5" />
             <div>
-              <p className="font-semibold text-green-900">Medical History Approved</p>
-              <p className="text-sm text-green-700 mt-1">
-                Approved by <span className="font-semibold">Dr. {medicalHistory.approvedBy.name}</span> on {new Date(medicalHistory.approvedAt).toLocaleDateString()}
+              <p className="font-bold text-green-600 dark:text-green-400 text-sm">Medical History Approved</p>
+              <p className="text-xs text-text-secondary mt-0.5">
+                Approved by <span className="font-semibold text-text-primary">Dr. {medicalHistory.approvedBy.name}</span> on {new Date(medicalHistory.approvedAt).toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -331,18 +329,18 @@ export default function EditMedicalHistory() {
 
       {/* Correction Request Banner */}
       {medicalHistory?.correctionRequested && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
           <div className="flex items-start gap-3">
-            <FiAlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+            <FiAlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
             <div>
-              <p className="font-semibold text-yellow-900">Patient Requested Correction</p>
-              <p className="text-sm text-yellow-700 mt-1">
+              <p className="font-bold text-amber-600 dark:text-amber-400 text-sm">Patient Requested Correction</p>
+              <p className="text-xs text-text-secondary mt-0.5">
                 Requested on {new Date(medicalHistory.correctionRequestDate).toLocaleDateString()}
               </p>
               {medicalHistory.correctionRequestMessage && (
-                <div className="mt-2 p-3 bg-white rounded border border-yellow-300">
-                  <p className="text-sm font-medium text-gray-700">Patient's Message:</p>
-                  <p className="text-sm text-gray-900 mt-1 italic">
+                <div className="mt-2 p-3 bg-bg-card rounded-xl border border-border-subtle">
+                  <p className="text-xs font-semibold text-text-muted">Patient's Message:</p>
+                  <p className="text-sm text-text-primary mt-1 italic">
                     "{medicalHistory.correctionRequestMessage}"
                   </p>
                 </div>
@@ -372,22 +370,22 @@ export default function EditMedicalHistory() {
             ]}
           />
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">Height (cm)</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">Height (cm)</label>
             <input
               type="number"
               value={formData.height}
               onChange={(e) => setFormData(prev => ({ ...prev, height: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
               placeholder="170"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">Weight (kg)</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5">Weight (kg)</label>
             <input
               type="number"
               value={formData.weight}
               onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
               placeholder="70"
             />
           </div>
@@ -439,19 +437,19 @@ export default function EditMedicalHistory() {
       <FormSection title="Allergies">
         <div className="space-y-3">
           {formData.allergies.map((allergy, index) => (
-            <div key={allergy._id || `allergy-${index}`} className="flex gap-3 items-start p-4 bg-red-50 rounded-lg">
+            <div key={allergy._id || `allergy-${index}`} className="flex gap-3 items-start p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
               <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
                 <input
                   type="text"
                   placeholder="Allergy name"
                   value={allergy.name}
                   onChange={(e) => updateAllergy(index, 'name', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <select
                   value={allergy.severity}
                   onChange={(e) => updateAllergy(index, 'severity', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 >
                   <option value="mild">Mild</option>
                   <option value="moderate">Moderate</option>
@@ -462,18 +460,19 @@ export default function EditMedicalHistory() {
                   placeholder="Reaction"
                   value={allergy.reaction}
                   onChange={(e) => updateAllergy(index, 'reaction', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <input
                   type="date"
                   value={allergy.diagnosedDate ? new Date(allergy.diagnosedDate).toISOString().split('T')[0] : ''}
                   onChange={(e) => updateAllergy(index, 'diagnosedDate', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
               </div>
               <button
                 onClick={() => removeAllergy(index)}
-                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                className="p-2 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors"
+                aria-label="Remove allergy"
               >
                 <FiTrash2 className="w-5 h-5" />
               </button>
@@ -481,7 +480,7 @@ export default function EditMedicalHistory() {
           ))}
           <button
             onClick={addAllergy}
-            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary/30 rounded-xl hover:bg-primary/10 transition-colors font-semibold text-xs"
           >
             <FiPlus className="w-4 h-4" />
             Add Allergy
@@ -493,25 +492,25 @@ export default function EditMedicalHistory() {
       <FormSection title="Past Medical Conditions">
         <div className="space-y-3">
           {formData.pastConditions.map((condition, index) => (
-            <div key={condition._id || `condition-${index}`} className="flex gap-3 items-start p-4 bg-blue-50 rounded-lg">
+            <div key={condition._id || `condition-${index}`} className="flex gap-3 items-start p-4 bg-bg-muted border border-border-subtle rounded-xl">
               <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
                 <input
                   type="text"
                   placeholder="Condition name"
                   value={condition.name}
                   onChange={(e) => updateCondition(index, 'name', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <input
                   type="date"
                   value={condition.diagnosedDate ? new Date(condition.diagnosedDate).toISOString().split('T')[0] : ''}
                   onChange={(e) => updateCondition(index, 'diagnosedDate', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <select
                   value={condition.status}
                   onChange={(e) => updateCondition(index, 'status', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 >
                   <option value="active">Active</option>
                   <option value="resolved">Resolved</option>
@@ -522,12 +521,13 @@ export default function EditMedicalHistory() {
                   placeholder="Notes"
                   value={condition.notes}
                   onChange={(e) => updateCondition(index, 'notes', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
               </div>
               <button
                 onClick={() => removeCondition(index)}
-                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                className="p-2 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors"
+                aria-label="Remove condition"
               >
                 <FiTrash2 className="w-5 h-5" />
               </button>
@@ -535,7 +535,7 @@ export default function EditMedicalHistory() {
           ))}
           <button
             onClick={addCondition}
-            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary/30 rounded-xl hover:bg-primary/10 transition-colors font-semibold text-xs"
           >
             <FiPlus className="w-4 h-4" />
             Add Condition
@@ -547,33 +547,34 @@ export default function EditMedicalHistory() {
       <FormSection title="Current Medications">
         <div className="space-y-3">
           {formData.currentMedications.map((medication, index) => (
-            <div key={medication._id || `medication-${index}`} className="flex gap-3 items-start p-4 bg-purple-50 rounded-lg">
+            <div key={medication._id || `medication-${index}`} className="flex gap-3 items-start p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
               <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                   type="text"
                   placeholder="Medication name"
                   value={medication.name}
                   onChange={(e) => updateMedication(index, 'name', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Dosage"
                   value={medication.dosage}
                   onChange={(e) => updateMedication(index, 'dosage', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Frequency"
                   value={medication.frequency}
                   onChange={(e) => updateMedication(index, 'frequency', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
               </div>
               <button
                 onClick={() => removeMedication(index)}
-                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                className="p-2 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors"
+                aria-label="Remove medication"
               >
                 <FiTrash2 className="w-5 h-5" />
               </button>
@@ -581,7 +582,7 @@ export default function EditMedicalHistory() {
           ))}
           <button
             onClick={addMedication}
-            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary/30 rounded-xl hover:bg-primary/10 transition-colors font-semibold text-xs"
           >
             <FiPlus className="w-4 h-4" />
             Add Medication
@@ -593,32 +594,33 @@ export default function EditMedicalHistory() {
       <FormSection title="Surgical History">
         <div className="space-y-3">
           {formData.surgeries.map((surgery, index) => (
-            <div key={surgery._id || `surgery-${index}`} className="flex gap-3 items-start p-4 bg-gray-50 rounded-lg">
+            <div key={surgery._id || `surgery-${index}`} className="flex gap-3 items-start p-4 bg-bg-muted border border-border-subtle rounded-xl">
               <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                   type="text"
                   placeholder="Surgery name"
                   value={surgery.name}
                   onChange={(e) => updateSurgery(index, 'name', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <input
                   type="date"
                   value={surgery.date ? new Date(surgery.date).toISOString().split('T')[0] : ''}
                   onChange={(e) => updateSurgery(index, 'date', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Hospital"
                   value={surgery.hospital}
                   onChange={(e) => updateSurgery(index, 'hospital', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
               </div>
               <button
                 onClick={() => removeSurgery(index)}
-                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                className="p-2 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors"
+                aria-label="Remove surgery"
               >
                 <FiTrash2 className="w-5 h-5" />
               </button>
@@ -626,7 +628,7 @@ export default function EditMedicalHistory() {
           ))}
           <button
             onClick={addSurgery}
-            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary/30 rounded-xl hover:bg-primary/10 transition-colors font-semibold text-xs"
           >
             <FiPlus className="w-4 h-4" />
             Add Surgery
@@ -638,33 +640,34 @@ export default function EditMedicalHistory() {
       <FormSection title="Family Medical History">
         <div className="space-y-3">
           {formData.familyHistory.map((item, index) => (
-            <div key={item._id || `family-${index}`} className="flex gap-3 items-start p-4 bg-green-50 rounded-lg">
+            <div key={item._id || `family-${index}`} className="flex gap-3 items-start p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
               <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                   type="text"
                   placeholder="Condition"
                   value={item.condition}
                   onChange={(e) => updateFamilyHistory(index, 'condition', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Relationship"
                   value={item.relationship}
                   onChange={(e) => updateFamilyHistory(index, 'relationship', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
                 <input
                   type="text"
                   placeholder="Notes"
                   value={item.notes}
                   onChange={(e) => updateFamilyHistory(index, 'notes', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="px-3 py-2 bg-bg-card text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
                 />
               </div>
               <button
                 onClick={() => removeFamilyHistory(index)}
-                className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                className="p-2 text-red-500 hover:bg-red-500/20 rounded-xl transition-colors"
+                aria-label="Remove family history item"
               >
                 <FiTrash2 className="w-5 h-5" />
               </button>
@@ -672,7 +675,7 @@ export default function EditMedicalHistory() {
           ))}
           <button
             onClick={addFamilyHistory}
-            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-primary border border-primary/30 rounded-xl hover:bg-primary/10 transition-colors font-semibold text-xs"
           >
             <FiPlus className="w-4 h-4" />
             Add Family History
@@ -687,7 +690,7 @@ export default function EditMedicalHistory() {
           onChange={(e) => setFormData(prev => ({ ...prev, additionalNotes: e.target.value }))}
           placeholder="Any additional medical information..."
           rows={5}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="w-full px-4 py-2.5 bg-bg-input text-text-primary border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
         />
       </FormSection>
     </div>

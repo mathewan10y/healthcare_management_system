@@ -21,7 +21,7 @@ const Calendar = ({
   selectedDate, 
   onDateSelect, 
   availableDates = [], 
-  minDate = null,
+  minDate = null, 
   loading = false,
   className = '',
   onMonthChange = null
@@ -70,7 +70,6 @@ const Calendar = ({
     newMonth.setMonth(currentMonth.getMonth() + direction);
     setCurrentMonth(newMonth);
     
-    // Notify parent component of month change
     if (onMonthChange) {
       onMonthChange(newMonth);
     }
@@ -116,32 +115,33 @@ const Calendar = ({
     if (isDateDisabled(date)) return;
     
     const dateStr = formatDateToString(date);
-    console.log('Calendar: Date clicked:', date, 'Formatted:', dateStr);
     onDateSelect(dateStr);
   };
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg p-4 ${className}`}>
+    <div className={`bg-bg-card text-text-primary border border-border-subtle rounded-2xl p-5 shadow-card ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <button
           type="button"
           onClick={() => navigateMonth(-1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl border border-border-subtle transition-colors"
           disabled={loading}
+          aria-label="Previous month"
         >
           <FiChevronLeft className="w-5 h-5" />
         </button>
         
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-base font-bold text-text-primary">
           {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
         </h3>
         
         <button
           type="button"
           onClick={() => navigateMonth(1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl border border-border-subtle transition-colors"
           disabled={loading}
+          aria-label="Next month"
         >
           <FiChevronRight className="w-5 h-5" />
         </button>
@@ -150,14 +150,14 @@ const Calendar = ({
       {/* Day names */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {dayNames.map(day => (
-          <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+          <div key={day} className="text-center text-xs font-semibold text-text-muted py-1.5 uppercase tracking-wider">
             {day}
           </div>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {calendarData.map((date, index) => {
           const isDisabled = isDateDisabled(date);
           const isSelected = isDateSelected(date);
@@ -171,23 +171,23 @@ const Calendar = ({
               onClick={() => handleDateClick(date)}
               disabled={isDisabled || loading}
               className={`
-                h-10 w-10 text-sm rounded-lg transition-all duration-200 relative
+                h-10 w-full text-xs font-medium rounded-xl transition-all duration-200 relative flex items-center justify-center
                 ${isSelected 
-                  ? 'bg-primary text-white font-semibold shadow-md' 
+                  ? 'bg-primary text-white font-bold shadow-md shadow-primary/30' 
                   : isDisabled 
-                    ? 'text-gray-300 cursor-not-allowed' 
+                    ? 'text-text-muted/40 opacity-40 cursor-not-allowed' 
                     : isAvailable && isCurrentMonth
-                      ? 'text-green-600 bg-green-50 hover:bg-green-100 font-medium'
+                      ? 'text-green-600 dark:text-green-400 bg-green-500/10 hover:bg-green-500/20 font-bold border border-green-500/30'
                       : isCurrentMonth
-                        ? 'text-gray-700 hover:bg-gray-100'
-                        : 'text-gray-300'
+                        ? 'text-text-primary hover:bg-bg-card-hover'
+                        : 'text-text-muted/40 opacity-40'
                 }
                 ${loading ? 'opacity-50' : ''}
               `}
             >
               {date.getDate()}
               {isAvailable && isCurrentMonth && !isSelected && (
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-green-500 rounded-full"></div>
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-green-500 rounded-full"></div>
               )}
             </button>
           );
@@ -195,23 +195,23 @@ const Calendar = ({
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex items-center justify-center space-x-4 text-xs text-gray-600">
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 bg-green-100 rounded border border-green-300"></div>
+      <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-center space-x-4 text-xs text-text-secondary">
+        <div className="flex items-center space-x-1.5">
+          <div className="w-2.5 h-2.5 bg-green-500/20 border border-green-500/40 rounded-full"></div>
           <span>Available</span>
         </div>
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 bg-gray-100 rounded border border-gray-300"></div>
+        <div className="flex items-center space-x-1.5">
+          <div className="w-2.5 h-2.5 bg-bg-card-hover border border-border-subtle rounded-full"></div>
           <span>Unavailable</span>
         </div>
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 bg-primary rounded"></div>
+        <div className="flex items-center space-x-1.5">
+          <div className="w-2.5 h-2.5 bg-primary rounded-full"></div>
           <span>Selected</span>
         </div>
       </div>
 
       {loading && (
-        <div className="mt-2 text-center text-sm text-gray-500">
+        <div className="mt-2 text-center text-xs text-text-muted">
           Loading available dates...
         </div>
       )}

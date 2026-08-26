@@ -52,6 +52,7 @@ import Contact from './pages/Contact';
 import Profile from './pages/Profile';
 import PharmacistDashboard from './pages/pharmacist/Dashboard';
 import PatientViewPrescription from './pages/patient/ViewPrescription';
+import DisputeLedger from './pages/admin/DisputeLedger';
 
 const router = createBrowserRouter([
   {
@@ -131,6 +132,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <AdminDashboard /> },
+      { path: 'disputes', element: <DisputeLedger /> },
       { path: 'specializations', element: <ManageSpecializations /> },
       { path: 'doctors', element: <ManageDoctors /> },
       { path: 'hospitals', element: <ManageHospitals /> },
