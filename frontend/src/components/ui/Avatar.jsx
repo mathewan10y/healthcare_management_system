@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const Avatar = ({ 
   src, 
@@ -9,6 +9,23 @@ const Avatar = ({
   ...props 
 }) => {
   const [imageError, setImageError] = useState(false);
+  const [triedBackend, setTriedBackend] = useState(false);
+  const [imgSrc, setImgSrc] = useState('');
+
+  useEffect(() => {
+    setImageError(false);
+    setTriedBackend(false);
+    if (!src) {
+      setImgSrc('');
+      return;
+    }
+    if (src.startsWith('http')) {
+      setImgSrc(src);
+      return;
+    }
+    // Direct relative path works with Vite public/ directory
+    setImgSrc(src.startsWith('/') ? src : `/${src}`);
+  }, [src]);
 
   // Size configurations
   const sizeClasses = {
@@ -24,11 +41,12 @@ const Avatar = ({
   // Generate initials from name
   const getInitials = (fullName) => {
     if (!fullName) return '?';
-    const names = fullName.trim().split(' ');
+    const cleanName = fullName.replace(/^dr\.?\s+/i, '').trim();
+    const names = cleanName.split(' ');
     if (names.length > 1) {
       return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`;
     }
-    return names[0].charAt(0);
+    return cleanName.charAt(0) || '?';
   };
 
   // Generate consistent color based on name
@@ -71,19 +89,26 @@ const Avatar = ({
     ${className}
   `;
 
+  const handleError = () => {
+    if (!triedBackend && src && !src.startsWith('http')) {
+      setTriedBackend(true);
+      const rawApi = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const baseUrl = rawApi.replace(/\/api\/?$/, '');
+      setImgSrc(`${baseUrl}${src.startsWith('/') ? '' : '/'}${src}`);
+    } else {
+      setImageError(true);
+    }
+  };
+
   // Show image if src is provided and no error occurred
-  if (src && !imageError) {
-    const fullSrc = src.startsWith('http') 
-      ? src 
-      : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${src}`;
-      
+  if (imgSrc && !imageError) {
     return (
       <div className={baseClasses} {...props}>
         <img
-          src={fullSrc}
+          src={imgSrc}
           alt={name || 'Avatar'}
           className="w-full h-full object-cover"
-          onError={() => setImageError(true)}
+          onError={handleError}
         />
       </div>
     );

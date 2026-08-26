@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { 
-  FiCalendar, FiClock, FiUser, FiFileText, FiStar, FiCheck, 
-  FiX, FiAlertTriangle, FiCamera, FiRefreshCw, FiDollarSign, FiShield 
+import {
+  FiCalendar, FiClock, FiUser, FiFileText, FiStar, FiCheck,
+  FiX, FiAlertTriangle, FiCamera, FiRefreshCw, FiDollarSign, FiShield
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -31,7 +31,7 @@ export default function PatientAppointments() {
   const [ratingInputs, setRatingInputs] = useState({});
   const [submittingId, setSubmittingId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
-  
+
   // Modals state
   const [scannerAppt, setScannerAppt] = useState(null);
   const [disputeAppt, setDisputeAppt] = useState(null);
@@ -146,10 +146,10 @@ export default function PatientAppointments() {
 
   const handleCancelAppointment = async () => {
     if (!appointmentToCancel) return;
-    
+
     setCancellingId(appointmentToCancel._id);
     const loadingToast = toast.loading('Processing escrow cancellation...');
-    
+
     try {
       const response = await api.post(`/appointments/${appointmentToCancel._id}/cancel`);
       toast.dismiss(loadingToast);
@@ -238,17 +238,17 @@ export default function PatientAppointments() {
                     <ModernTableRow key={appointment._id} isEven={index % 2 === 0}>
                       {/* Date & Time */}
                       <ModernTableCell>
-                        <DateTimeDisplay 
-                          date={appointment.date} 
+                        <DateTimeDisplay
+                          date={appointment.date}
                           time={appointment.timeSlot}
                         />
                       </ModernTableCell>
-                      
+
                       {/* Doctor */}
                       <ModernTableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar 
-                            name={appointment.doctorId?.name || 'Doctor'} 
+                          <Avatar
+                            name={appointment.doctorId?.name || 'Doctor'}
                             size="sm"
                           />
                           <div>
@@ -261,7 +261,7 @@ export default function PatientAppointments() {
                           </div>
                         </div>
                       </ModernTableCell>
-                      
+
                       {/* Status & Live Queue */}
                       <ModernTableCell>
                         <div className="flex flex-col gap-1">
@@ -301,12 +301,11 @@ export default function PatientAppointments() {
                         <div className="text-xs space-y-0.5">
                           <div className="font-bold text-text-primary flex items-center gap-1">
                             <span>₹{((appointment.escrowAmount || 25000) / 100).toFixed(2)}</span>
-                            <span className={`text-[10px] uppercase font-semibold px-1.5 py-0.2 rounded ${
-                              appointment.escrowStatus === 'released_to_doctor' ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
-                              appointment.escrowStatus === 'refunded_to_patient' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' :
-                              appointment.escrowStatus === 'disputed' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
-                              'bg-blue-500/10 text-primary'
-                            }`}>
+                            <span className={`text-[10px] uppercase font-semibold px-1.5 py-0.2 rounded ${appointment.escrowStatus === 'released_to_doctor' ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
+                                appointment.escrowStatus === 'refunded_to_patient' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' :
+                                  appointment.escrowStatus === 'disputed' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+                                    'bg-blue-500/10 text-primary'
+                              }`}>
                               {appointment.escrowStatus || 'held'}
                             </span>
                           </div>
@@ -315,7 +314,7 @@ export default function PatientAppointments() {
                           </span>
                         </div>
                       </ModernTableCell>
-                      
+
                       {/* Rating */}
                       <ModernTableCell>
                         {isCompleted && (
@@ -325,7 +324,7 @@ export default function PatientAppointments() {
                                 <FiCheck className="w-3.5 h-3.5" /> Rated
                               </span>
                             ) : (
-                              <StarRating 
+                              <StarRating
                                 rating={ratingInputs[appointment._id] || 0}
                                 onRate={(rating) => handleRating(appointment._id, rating)}
                                 disabled={submittingId === appointment._id}
@@ -335,7 +334,7 @@ export default function PatientAppointments() {
                           </div>
                         )}
                       </ModernTableCell>
-                      
+
                       {/* Actions */}
                       <ModernTableCell>
                         <div className="flex items-center gap-2">
@@ -406,8 +405,8 @@ export default function PatientAppointments() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Avatar 
-                        name={appointment.doctorId?.name || 'Doctor'} 
+                      <Avatar
+                        name={appointment.doctorId?.name || 'Doctor'}
                         size="md"
                       />
                       <div>
@@ -417,8 +416,8 @@ export default function PatientAppointments() {
                         <p className="text-xs text-text-muted">
                           {appointment.doctorId?.email || ''}
                         </p>
-                        <DateTimeDisplay 
-                          date={appointment.date} 
+                        <DateTimeDisplay
+                          date={appointment.date}
                           time={appointment.timeSlot}
                         />
                       </div>
@@ -545,11 +544,10 @@ export default function PatientAppointments() {
               {(() => {
                 const policy = evaluateCancellationPolicy(appointmentToCancel);
                 return (
-                  <div className={`p-4 rounded-2xl border text-xs leading-relaxed ${
-                    policy.isFullRefund 
-                      ? 'bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300' 
+                  <div className={`p-4 rounded-2xl border text-xs leading-relaxed ${policy.isFullRefund
+                      ? 'bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300'
                       : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
-                  }`}>
+                    }`}>
                     {policy.isFullRefund ? (
                       <>
                         <span className="font-bold block mb-1">✅ 100% Full Refund Guaranteed</span>

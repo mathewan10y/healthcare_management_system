@@ -7,6 +7,40 @@ import api from '../../services/api';
 import { KERALA_DISTRICTS } from '../../constants';
 import { AppSelect, Calendar, DoctorProfileModal } from '../../components/ui';
 
+const formatDoctorName = (rawName) => {
+  if (!rawName) return 'Doctor';
+  const trimmed = rawName.trim();
+  if (/^dr\.?\s+/i.test(trimmed)) {
+    return `Dr. ${trimmed.replace(/^dr\.?\s+/i, '')}`;
+  }
+  return `Dr. ${trimmed}`;
+};
+
+const getDoctorPhotoUrl = (doctor) => {
+  const photo = doctor?.photoUrl || doctor?.userId?.photoUrl;
+  if (!photo) return null;
+  if (photo.startsWith('http://') || photo.startsWith('https://')) return photo;
+  const clean = photo.startsWith('/') ? photo : `/${photo}`;
+  return clean;
+};
+
+const handleDoctorImageError = (e, doctor) => {
+  const target = e.currentTarget;
+  if (!target.dataset.triedBackend) {
+    target.dataset.triedBackend = 'true';
+    const photo = doctor?.photoUrl || doctor?.userId?.photoUrl;
+    if (photo && !photo.startsWith('http')) {
+      const rawApi = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const baseUrl = rawApi.replace(/\/api\/?$/, '');
+      target.src = `${baseUrl}${photo.startsWith('/') ? '' : '/'}${photo}`;
+      return;
+    }
+  }
+  const cleanName = (doctor?.userId?.name || 'Doctor').replace(/^dr\.?\s+/i, '');
+  target.onerror = null;
+  target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName)}&size=120&background=0284c7&color=fff&bold=true`;
+};
+
 export default function BookAppointment() {
   const navigate = useNavigate();
   const [doctors, setDoctors] = useState([]);
@@ -271,58 +305,68 @@ export default function BookAppointment() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {doctors.map((doctor) => (
-                <div
-                  key={doctor._id}
-                  className="bg-bg-card p-5 rounded-2xl shadow-card border border-border-subtle space-y-4 flex flex-col justify-between hover:border-primary/40 transition-all group"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary font-black text-lg flex items-center justify-center flex-shrink-0">
-                        {doctor.userId?.name?.charAt(0) || 'D'}
+              {doctors.map((doctor) => {
+                const doctorName = formatDoctorName(doctor.userId?.name);
+                const photoSrc = getDoctorPhotoUrl(doctor);
+
+                return (
+                  <div
+                    key={doctor._id}
+                    className="bg-bg-card p-5 rounded-2xl shadow-card border border-border-subtle space-y-4 flex flex-col justify-between hover:border-primary/40 transition-all group"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3.5">
+                        <div className="relative w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 bg-primary/10 border border-border-subtle shadow-sm flex items-center justify-center">
+                          <img
+                            src={photoSrc || `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.userId?.name?.replace(/^dr\.?\s+/i, '') || 'Doctor')}&size=120&background=0284c7&color=fff&bold=true`}
+                            alt={doctorName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => handleDoctorImageError(e, doctor)}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-bold text-text-primary text-base group-hover:text-primary transition-colors truncate">
+                            {doctorName}
+                          </h3>
+                          <p className="text-xs text-primary font-semibold truncate">
+                            {doctor.specializationId?.name || 'General Physician'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-text-primary text-base group-hover:text-primary transition-colors">
-                          Dr. {doctor.userId?.name}
-                        </h3>
-                        <p className="text-xs text-primary font-semibold">
-                          {doctor.specializationId?.name || 'General Physician'}
+
+                      <div className="space-y-1 text-xs text-text-secondary">
+                        <p className="flex items-center gap-1.5">
+                          <FiMapPin className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                          <span className="truncate">{doctor.hospitalId?.name || 'Private Clinic'}, {doctor.district}</span>
+                        </p>
+                        <p className="text-text-muted text-[11px]">
+                          Fee: ₹{((doctor.consultationFee || 25000) / 100).toFixed(2)} (Escrow Held)
                         </p>
                       </div>
                     </div>
 
-                    <div className="space-y-1 text-xs text-text-secondary">
-                      <p className="flex items-center gap-1.5">
-                        <FiMapPin className="w-3.5 h-3.5 text-text-muted" />
-                        {doctor.hospitalId?.name || 'Private Clinic'}, {doctor.district}
-                      </p>
-                      <p className="text-text-muted text-[11px]">
-                        Fee: ₹{((doctor.consultationFee || 25000) / 100).toFixed(2)} (Escrow Held)
-                      </p>
+                    <div className="flex items-center gap-2 pt-2 border-t border-border-subtle">
+                      <button
+                        type="button"
+                        onClick={() => setProfileDoctor(doctor)}
+                        className="flex-1 py-2 px-3 bg-bg-muted hover:bg-bg-card-hover border border-border-subtle rounded-xl text-xs font-semibold text-text-primary transition-colors"
+                      >
+                        View Profile
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedDoctor(doctor);
+                          setForm({ date: todayIsoDate, timeSlot: '' });
+                        }}
+                        className="flex-1 py-2 px-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
+                      >
+                        Book Slot
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 pt-2 border-t border-border-subtle">
-                    <button
-                      type="button"
-                      onClick={() => setProfileDoctor(doctor)}
-                      className="flex-1 py-2 px-3 bg-bg-muted hover:bg-bg-card-hover border border-border-subtle rounded-xl text-xs font-semibold text-text-primary transition-colors"
-                    >
-                      View Profile
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedDoctor(doctor);
-                        setForm({ date: todayIsoDate, timeSlot: '' });
-                      }}
-                      className="flex-1 py-2 px-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
-                    >
-                      Book Slot
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -333,9 +377,19 @@ export default function BookAppointment() {
         <div className="fixed inset-0 z-[1300] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="relative z-[1301] w-full max-w-lg bg-bg-card text-text-primary rounded-3xl shadow-2xl border border-border-subtle overflow-hidden animate-fade-in-fast">
             <div className="px-6 py-5 border-b border-border-subtle bg-bg-muted flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-text-primary">Book Appointment</h3>
-                <p className="text-xs text-text-muted">Dr. {selectedDoctor.userId?.name}</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl overflow-hidden bg-primary/10 flex-shrink-0 border border-border-subtle flex items-center justify-center">
+                  <img
+                    src={getDoctorPhotoUrl(selectedDoctor) || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedDoctor.userId?.name?.replace(/^dr\.?\s+/i, '') || 'Doctor')}&size=100&background=0284c7&color=fff&bold=true`}
+                    alt={formatDoctorName(selectedDoctor.userId?.name)}
+                    className="w-full h-full object-cover"
+                    onError={(e) => handleDoctorImageError(e, selectedDoctor)}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-text-primary">Book Appointment</h3>
+                  <p className="text-xs text-text-muted">{formatDoctorName(selectedDoctor.userId?.name)}</p>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedDoctor(null)}

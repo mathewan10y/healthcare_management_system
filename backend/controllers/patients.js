@@ -54,8 +54,8 @@ exports.getDoctors = async (req, res) => {
     // The aggregation pipeline. We perform lookups first to get all necessary data.
     const pipeline = [
       // 1. Start with approved doctors
-      { 
-        $match: { verificationStatus: 'Approved' } 
+      {
+        $match: { verificationStatus: 'Approved' }
       },
       // 2. Join with the 'users' collection to get doctor's name, email, etc.
       {
@@ -143,7 +143,7 @@ exports.getDoctors = async (req, res) => {
     // 7. Handle Pagination
     // Create a parallel pipeline to get the total count *before* applying skip/limit
     const countPipeline = [...pipeline, { $count: 'total' }];
-    
+
     // Add pagination to the main data pipeline
     const skip = (parseInt(page) - 1) * parseInt(limit);
     pipeline.push({ $skip: skip });
@@ -154,7 +154,7 @@ exports.getDoctors = async (req, res) => {
       Doctor.aggregate(pipeline),
       Doctor.aggregate(countPipeline)
     ]);
-    
+
     const totalCount = countResult[0]?.total || 0;
 
     res.json({
@@ -198,31 +198,31 @@ exports.getAvailableSlots = async (req, res) => {
     if (!dayAvailability || !dayAvailability.slots) {
       return res.json({ success: true, data: [] });
     }
-    
+
     const expandTimeRange = (timeRange) => {
       const [startTime, endTime] = timeRange.split('-');
       const slots = [];
-      
+
       const parseTime = (timeStr) => {
         const [hours, minutes] = timeStr.split(':').map(Number);
         return hours * 60 + minutes;
       };
-      
+
       const formatTime = (minutes) => {
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
       };
-      
+
       const startMinutes = parseTime(startTime);
       const endMinutes = parseTime(endTime);
-      
+
       for (let time = startMinutes; time < endMinutes; time += 30) {
         const slotStart = formatTime(time);
         const slotEnd = formatTime(time + 30);
         slots.push(`${slotStart}-${slotEnd}`);
       }
-      
+
       return slots;
     };
 
@@ -258,7 +258,7 @@ exports.bookAppointment = async (req, res) => {
   try {
     // Normalize date to UTC midnight for consistent storage
     const normalizedDate = normalizeDateToUTC(date);
-    
+
     const existing = await Appointment.findOne({ doctorId, date: normalizedDate, timeSlot, status: 'Scheduled' });
     if (existing) return res.status(400).json({ success: false, message: 'Time slot not available' });
 
@@ -531,29 +531,29 @@ exports.cancelAppointment = async (req, res) => {
 
     try {
       const now = new Date();
-      
+
       let appointmentDate;
       if (typeof appointment.date === 'string') {
         appointmentDate = new Date(appointment.date + 'T00:00:00');
       } else {
         appointmentDate = new Date(appointment.date);
       }
-      
+
       let timeSlot = appointment.timeSlot || '';
-      
+
       let startTime = timeSlot;
       if (timeSlot.includes('-')) {
         startTime = timeSlot.split('-')[0].trim();
       }
-      
+
       if (!startTime.includes(':')) {
         startTime = startTime + ':00';
       }
-      
+
       const appointmentDateTime = new Date(appointmentDate);
       const [hours, minutes] = startTime.split(':').map(Number);
       appointmentDateTime.setHours(hours, minutes, 0, 0);
-      
+
       const timeDiffMs = appointmentDateTime.getTime() - now.getTime();
       const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
 
@@ -667,7 +667,7 @@ exports.cancelAppointment = async (req, res) => {
 
     // Fetch the appointment
     const appointment = await Appointment.findById(id).populate('doctorId', 'name');
-    
+
     if (!appointment) {
       return res.status(404).json({ success: false, message: 'Appointment not found' });
     }
@@ -700,8 +700,8 @@ exports.cancelAppointment = async (req, res) => {
         'appointment'
       );
 
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         message: 'Appointment cancelled successfully',
         refundEligible: false
       });
@@ -719,7 +719,7 @@ exports.cancelAppointment = async (req, res) => {
       // 50% refund
       const Payment = require('../models/Payment');
       const Doctor = require('../models/Doctor');
-      
+
       // Get the doctor's consultation fee
       const doctorProfile = await Doctor.findOne({ userId: appointment.doctorId });
       const consultationFee = doctorProfile?.consultationFee || 25000;
@@ -763,8 +763,8 @@ exports.cancelAppointment = async (req, res) => {
         'appointment'
       );
 
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         message: 'Appointment cancelled successfully. 50% refund processed.',
         refundEligible: true,
         refundAmount: refundAmount,
@@ -790,8 +790,8 @@ exports.cancelAppointment = async (req, res) => {
         'appointment'
       );
 
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         message: 'Appointment cancelled. No refund eligible (less than 3 days notice).',
         refundEligible: false,
         daysUntilAppointment: daysUntilAppointment
@@ -815,18 +815,18 @@ exports.getPatientFile = async (req, res) => {
 
     // Validate that requester is a doctor
     if (req.user.role !== 'doctor') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Only doctors can access patient files' 
+      return res.status(403).json({
+        success: false,
+        message: 'Only doctors can access patient files'
       });
     }
 
     // Verify patient exists
     const patient = await User.findById(patientId).select('-password');
     if (!patient || patient.role !== 'patient') {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Patient not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Patient not found'
       });
     }
 
@@ -865,11 +865,11 @@ exports.getPatientFile = async (req, res) => {
       medicalHistory: medicalHistory || null,
       appointments: {
         total: appointments.length,
-        upcoming: appointments.filter(a => 
+        upcoming: appointments.filter(a =>
           new Date(a.date) >= new Date() && a.status === 'Scheduled'
         ).length,
         completed: appointments.filter(a => a.status === 'Completed').length,
-        cancelled: appointments.filter(a => 
+        cancelled: appointments.filter(a =>
           a.status.includes('cancelled') || a.status === 'Cancelled'
         ).length,
         data: appointments
@@ -889,15 +889,15 @@ exports.getPatientFile = async (req, res) => {
       }
     };
 
-    res.json({ 
-      success: true, 
-      data: patientFile 
+    res.json({
+      success: true,
+      data: patientFile
     });
   } catch (error) {
     console.error('Error fetching patient file:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch patient file' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch patient file'
     });
   }
 };
@@ -913,16 +913,16 @@ exports.searchPatients = async (req, res) => {
 
     // Validate that requester is a doctor or admin
     if (req.user.role !== 'doctor' && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Only doctors and admins can search patients' 
+      return res.status(403).json({
+        success: false,
+        message: 'Only doctors and admins can search patients'
       });
     }
 
     if (!query || query.trim().length < 1) {
-      return res.json({ 
-        success: true, 
-        data: [] 
+      return res.json({
+        success: true,
+        data: []
       });
     }
 
@@ -962,16 +962,16 @@ exports.searchPatients = async (req, res) => {
       patients = [...patients, ...additionalPatients];
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       count: patients.length,
-      data: patients 
+      data: patients
     });
   } catch (error) {
     console.error('Error searching patients:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to search patients' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search patients'
     });
   }
 };
